@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from functools import partial
+
 
 #Make the plot aspect ratios and text look nice
 params = {'text.usetex' : True,
