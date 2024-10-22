@@ -29,81 +29,86 @@ x = np.linspace(-1, 1, nx+1)
 
 h = h0(x)
 u = u0(x)
-hOld = h.copy()
-uOld = u.copy()
+# hOld = h.copy()
+# uOld = u.copy()
 
-intialStableWaveSpeed = np.max(u) + np.sqrt(np.max(g*h))
-dt =  dx / intialStableWaveSpeed #CFL 
-t_end = 0.2
-nt = int(t_end/dt)
+H = 1
+
+intialStableWaveSpeed = np.sqrt(np.max(g*H))
+dt =  0.99 * dx / (2 * intialStableWaveSpeed) #CFL 
+t_end = 0.5
+nt = int(np.ceil(t_end/dt))
 
 
+#%% Conversion to Characteristic Variables
 
-plt.figure(figsize=(fig_width_inches,fig_height_inches))
+Q1 = 0.5 * (u + np.sqrt(g*h))
+Q2 = 0.5 * (-u + np.sqrt(g*h))
 
-plt.plot(x,h,'b',label='h')
-plt.legend(loc='upper left')
-plt.ylabel('$h$')
-plt.xlabel('$x$')
-#plt.ylim([0.5*H,2*H])
-plt.xlim([-1,1])
-plt.pause(0.01)
+Q1Old = Q1.copy()
+Q2Old = Q2.copy()
+
+#%% Initial state plotting
+
+# plt.figure(figsize=(fig_width_inches,fig_height_inches))
+
+# plt.plot(x,h,'b',label='h')
+# plt.legend(loc='upper left')
+# plt.ylabel('$h$')
+# plt.xlabel('$x$')
+# #plt.ylim([0.5*H,2*H])
+# plt.xlim([-1,1])
+# plt.pause(0.01)
 
 #%% Time stepping
 
 ## Using Durran's NL-SWE formualtion
 
-#FT-B/FS   
 t=0
 current_time = 0
 
-
-for t in range(10):
+while current_time < t_end:
     for j in range(1,nx):
-        if uOld[j] >= 0:
 
-            #Upwind in \partial_x
-            h[j] = hOld[j] - dt/dx * (uOld[j] * (hOld[j] - hOld[j-1]) + hOld[j] * (uOld[j] - uOld[j-1]))
-            u[j] = uOld[j] - dt/dx * (uOld[j] * (uOld[j] - uOld[j-1]) + g * (hOld[j] - hOld[j-1]))
+        #FTBS for Q1 and FTFS for Q2
+        Q1[j] = Q1Old[j] - 2*dt/dx * Q1Old[j] * (Q1Old[j] - Q1Old[j-1])
+        Q2[j] = Q2Old[j] + 2*dt/dx * Q2Old[j] * (Q2Old[j+1] - Q2Old[j])
+    
+        #Manually update the end point 
+        Q1[-1] = Q1Old[-1] - 2*dt/dx * Q1Old[-1] * (Q1Old[-1] - Q1Old[-2])
+        Q2[0] = Q2Old[0] + 2*dt/dx * Q2Old[0] * (Q2Old[1] - Q2Old[0])
         
-            #Manually update the end point 
-            h[-1] = hOld[-1] - dt/dx * (uOld[-1] * (hOld[-1] - hOld[-2]) + hOld[-1] * (uOld[-1] - uOld[-2]))
-            u[-1] = uOld[-1] - dt/dx * (uOld[-1] * (uOld[-1] - uOld[-2]) + g * (hOld[-1] - hOld[-2]))
-            
-            #PBCs
-            h[0] = h[-1] 
-            u[0] = u[-1]
-            
-        else:
-            
-            #Downwind in \partial_x
-            h[j] = hOld[j] - dt/dx * (uOld[j] * (hOld[j+1] - hOld[j]) + hOld[j] * (uOld[j+1] - uOld[j]))
-            u[j] = uOld[j] - dt/dx * (uOld[j] * (uOld[j+1] - uOld[j]) + g * (hOld[j+1] - hOld[j]))
-            
-            #PBCs
-            h[-1] = h[1]
-            u[-1] = u[1]
-            
-            h[0] = h[-2]
-            u[0] = u[-2]
+        #PBCs
+        Q1[0] = Q1[-1] 
+        Q2[-1] = Q2[0]
+    
 
-    hOld = h.copy()
-    uOld = u.copy()
+    Q1Old = Q1.copy()
+    Q2Old = Q2.copy()
 
-    uTemp = abs(uOld) + np.sqrt(g*hOld)
-    dt = min(dx / max(uTemp), dt)
+    # uTemp = abs(uOld) + np.sqrt(g*hOld)
+    # uTemp = Q1
+    # dt = min(dx / max(uTemp), dt)
+    if current_time + dt > t_end:
+        dt = t_end - current_time
+    nt = int(np.ceil(t_end/dt))
     current_time += dt
     t += 1
 
 #%% Plotting
 
+    # Map back to coordinate variables for plotting
+    h = 1/g * (Q1 + Q2)**2
+    u = Q1 - Q2
+
     fig, ax = plt.subplots(1,2)
-    print(f"t={t}, dt={dt:.5f}, current_time={current_time:.3f}, CFL={max(abs(u))*dt/dx:.2f}")
+    print(f"t={t}, dt={dt:.5f}, current_time={current_time:.3f}, CFL={2*np.sqrt(g*H)*dt/dx:.2f}")
     plt.cla()
     ax[0].plot(x,h,'b',label='h')
     ax[1].plot(x,u,'r',label='u')
     ax[0].set_ylabel('$h$')
     ax[1].set_ylabel('$u$')
+    ax[0].set_ylim([0.9,2])
     for a in ax:
         a.legend(loc='upper left')
         a.set_xlabel('$x$')
