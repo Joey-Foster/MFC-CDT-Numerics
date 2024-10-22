@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 #Make the plot aspect ratios and text look nice
 params = {'text.usetex' : True,
@@ -64,10 +65,30 @@ Q2Old = Q2.copy()
 
 ## Using Durran's NL-SWE formualtion
 
+fig, ax = plt.subplots(1,2,figsize=(fig_width_inches, fig_height_inches))
+line_h, = ax[0].plot(x, h,'b', label='h')
+line_u, = ax[1].plot(x, u,'r', label='u')
+
+ax[0].set_ylabel('$h$')
+ax[1].set_ylabel('$u$')
+ax[0].set_ylim([0.9,2])
+ax[1].set_ylim([-2,2])
+for a in ax:
+    a.legend(loc='upper left')
+    a.set_xlabel('$x$')
+    a.set_xlim([-1,1])
+plt.tight_layout()
+
 t=0
 current_time = 0
 
-while current_time < t_end:
+suptitle = fig.suptitle('Non-linear 1-D SWE with arbitrary IC\n Time = {current_time:.3f}')
+
+plt.subplots_adjust(top=0.85)
+
+def timestep(frame):
+#while current_time < t_end:
+    global Q1Old, Q2Old, current_time, t, dt
     for j in range(1,nx):
 
         #FTBS for Q1 and FTFS for Q2
@@ -89,9 +110,11 @@ while current_time < t_end:
     # uTemp = abs(uOld) + np.sqrt(g*hOld)
     # uTemp = Q1
     # dt = min(dx / max(uTemp), dt)
-    if current_time + dt > t_end:
+    if current_time == t_end:
         dt = t_end - current_time
-    nt = int(np.ceil(t_end/dt))
+    elif current_time + dt > t_end:
+        dt = t_end - current_time
+        nt = int(np.ceil(t_end/dt))
     current_time += dt
     t += 1
 
@@ -101,20 +124,28 @@ while current_time < t_end:
     h = 1/g * (Q1 + Q2)**2
     u = Q1 - Q2
 
-    fig, ax = plt.subplots(1,2)
+    # fig, ax = plt.subplots(1,2)
     print(f"t={t}, dt={dt:.5f}, current_time={current_time:.3f}, CFL={2*np.sqrt(g*H)*dt/dx:.2f}")
-    plt.cla()
-    ax[0].plot(x,h,'b',label='h')
-    ax[1].plot(x,u,'r',label='u')
-    ax[0].set_ylabel('$h$')
-    ax[1].set_ylabel('$u$')
-    ax[0].set_ylim([0.9,2])
-    for a in ax:
-        a.legend(loc='upper left')
-        a.set_xlabel('$x$')
-        #plt.ylim([0.5*H,2*H])
-        a.set_xlim([-1,1])
-    plt.tight_layout()
+    # plt.cla()
+    # ax[0].plot(x,h,'b',label='h')
+    # ax[1].plot(x,u,'r',label='u')
+    # ax[0].set_ylabel('$h$')
+    # ax[1].set_ylabel('$u$')
+    # ax[0].set_ylim([0.9,2])
+    # for a in ax:
+    #     a.legend(loc='upper left')
+    #     a.set_xlabel('$x$')
+    #     #plt.ylim([0.5*H,2*H])
+    #     a.set_xlim([-1,1])
+    # plt.tight_layout()
+    
+    line_h.set_data(x, h)
+    line_u.set_data(x, u)
+    
+    suptitle.set_text(f'Non-linear 1-D SWE with arbitrary IC\n Time = {current_time:.3f}')
     plt.pause(0.01)
+    
 
+ani = FuncAnimation(fig, timestep, frames=nt, blit=False, repeat=False)
+ani.save('FTBS_NLSWE_arbitraryIC.gif', writer='pillow', fps=20)
 plt.show()
