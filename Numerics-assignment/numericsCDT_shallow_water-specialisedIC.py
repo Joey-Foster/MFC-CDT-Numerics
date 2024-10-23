@@ -4,7 +4,7 @@ from matplotlib.animation import FuncAnimation
 
 #%% Function Defintions
 
-def plottingSetup():
+def plottingSetup(h_lims, u_lims):
     #Make the plot aspect ratios and text look nice
     params = {'text.usetex' : True,
               'font.size' : 11,
@@ -20,8 +20,8 @@ def plottingSetup():
     
     ax[0].set_ylabel('$h$')
     ax[1].set_ylabel('$u$')
-    ax[0].set_ylim([0.9,2])
-    ax[1].set_ylim([7.5,12])
+    ax[0].set_ylim(h_lims)
+    ax[1].set_ylim(u_lims)
     for a in ax:
         a.legend(loc='upper left')
         a.set_xlabel('$x$')
@@ -61,7 +61,7 @@ def GIFtime():
    t=0
    current_time=0
 
-   fig, line_h, line_u = plottingSetup()
+   fig, line_h, line_u = plottingSetup([0.9,2], [7.5,12])
    hOld, uOld, h, u, x, dx, dt, nt = processInitialData(h0, u0, nx, t_end, g)
     
    suptitle = fig.suptitle('Non-linear 1-D SWE with specialised IC to make FTBS'
