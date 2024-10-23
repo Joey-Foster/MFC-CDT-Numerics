@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from NLSWE_specialisedIC import plottingSetup, processInitialData, doEvolution, GIFtime
 
 #Make the plot aspect ratios and text look nice
 params = {'text.usetex' : True,
@@ -37,7 +38,7 @@ H = 1
 
 intialStableWaveSpeed = np.sqrt(np.max(g*H))
 dt =  0.99 * dx / (2 * intialStableWaveSpeed) #CFL 
-t_end = 0.5
+t_end = 1
 nt = int(np.ceil(t_end/dt))
 
 
