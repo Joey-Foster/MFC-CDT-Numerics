@@ -64,8 +64,8 @@ def GIFtime():
    fig, line_h, line_u = plottingSetup([0.9,2], [7.5,12])
    hOld, uOld, h, u, x, dx, dt, nt = processInitialData(h0, u0, nx, t_end, g)
     
-   suptitle = fig.suptitle('Non-linear 1-D SWE with specialised IC to make FTBS'
-                           'work')
+   suptitle = fig.suptitle('Non-linear 1-D SWE with specialised IC to make '
+                           'FTBS work')
    
    print('Rendering GIF. Please stand by.')
    
@@ -121,10 +121,10 @@ class doEvolution:
         self.line_h.set_data(self.x, self.h)
         self.line_u.set_data(self.x, self.u)
         
-        self.suptitle.set_text(f'Non-linear 1-D SWE with specialised IC to make'
-                               f'FTBS work\n Time = {self.current_time:.3f}')
-        print(f't={self.t}, dt={self.dt:.5f},'
-              f'current_time={self.current_time:.3f},' 
+        self.suptitle.set_text(f'Non-linear 1-D SWE with specialised IC to '
+                               f'make FTBS work\n Time = {self.current_time:.3f}')
+        print(f't={self.t}, dt={self.dt:.5f}, '
+              f'current_time={self.current_time:.3f}, ' 
               f'CFL={max(abs(self.u))*self.dt/self.dx:.2f}')
         plt.pause(0.01)
         
