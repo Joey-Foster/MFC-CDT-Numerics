@@ -4,7 +4,7 @@ from matplotlib.animation import FuncAnimation
 
 #%% Function Defintions
 
-def plottingSetup(h_lims, u_lims):
+def plottingSetup(h_lims, u_lims, GIF=False):
     #Make the plot aspect ratios and text look nice
     params = {'text.usetex' : True,
               'font.size' : 11,
@@ -16,22 +16,27 @@ def plottingSetup(h_lims, u_lims):
     
     # Set up empty axes with appropriate labels
     fig, ax = plt.subplots(1,2,figsize=(fig_width_inches, fig_height_inches))
-    line_h, = ax[0].plot([], [],'b', label='h')
-    line_u, = ax[1].plot([], [],'r', label='u')
-    
+    if GIF:
+        line_h, = ax[0].plot([], [],'b', label='h')
+        line_u, = ax[1].plot([], [],'r', label='u')
+        
     ax[0].set_ylabel('$h$')
     ax[1].set_ylabel('$u$')
     ax[0].set_ylim(h_lims)
     ax[1].set_ylim(u_lims)
     for a in ax:
-        a.legend(loc='upper left')
+        if GIF:
+            a.legend(loc='upper left')
         a.set_xlabel('$x$')
         a.set_xlim([-1,1])
     plt.tight_layout()
     
     plt.subplots_adjust(top=0.85)
     
-    return fig, line_h, line_u
+    if GIF:
+        return fig, line_h, line_u
+    else:
+        return fig, ax
 
 # Initial data
 def h0(x):
@@ -61,13 +66,36 @@ def processInitialData(h0, u0, nx, t_end, g):
     
     return hOld, uOld, h, u, x, dx, dt, nt
 
+def produceStaticPlot(h_lims, u_lims, t_range, t_sample):
+    if t_sample > 4:
+        raise Exception("t_sample must be between 1 and 4 because I didn't have time to generalise this")
+    t=0
+    current_time=0
+
+    fig, ax = plottingSetup(h_lims, u_lims)
+    
+    fig.suptitle('Non-linear 1-D SWE with specialised IC to make FTBS work')
+    
+    hOld, uOld, h, u, x, dx, dt, nt = processInitialData(h0, u0, nx, t_end, g)
+    
+    for t in range(t_range + 1):
+        colours = ['b','r','g','orange'] #This does not support t_sample > 4...
+        quotient, remainder = divmod(t,t_range//(t_sample-1))
+        if remainder==0:
+            ax[0].plot(x,h,c=colours[quotient-1],label=f't = {current_time:.3f}')
+            ax[1].plot(x,u,c=colours[quotient-1])
+        evolution = doEvolution(hOld, uOld, h, u, x, dx, dt, nt, t, current_time)
+        hOld, uOld, h, u, dt, nt, t, current_time = evolution.timestep('')
+    fig.legend(loc='upper center', bbox_to_anchor=(0.525, 0.95), ncol=t_sample, frameon=False)
+    plt.savefig('NLSWE_specialIC.pdf')
+    plt.show()
 
 def GIFtime():
     t=0
     current_time=0
 
     # Set up axes and initial data
-    fig, line_h, line_u = plottingSetup([0.9,2], [7.5,12])
+    fig, line_h, line_u = plottingSetup([0.9,2], [7.5,12], GIF=True)
     hOld, uOld, h, u, x, dx, dt, nt = processInitialData(h0, u0, nx, t_end, g)
     
     suptitle = fig.suptitle('Non-linear 1-D SWE with specialised IC to make '
@@ -88,7 +116,7 @@ def GIFtime():
 class doEvolution:
     
     def __init__(self, hOld, uOld, h, u, x, dx, dt, nt, t, current_time, 
-                 line_h, line_u, suptitle):
+                 line_h=0, line_u=0, suptitle=''):
         self.hOld = hOld
         self.uOld = uOld
         self.h = h
@@ -138,10 +166,12 @@ class doEvolution:
         self.dt = min(self.dx / max(uTemp), self.dt)   
     
         # Set axis data
-        self.line_h.set_data(self.x, self.h)
-        self.line_u.set_data(self.x, self.u)
-        
-        self.suptitle.set_text(f'Non-linear 1-D SWE with specialised IC to '
+        if (self.line_h != 0) & (self.line_u != 0):
+            self.line_h.set_data(self.x, self.h)
+            self.line_u.set_data(self.x, self.u)
+            
+        if self.suptitle !='':
+            self.suptitle.set_text(f'Non-linear 1-D SWE with specialised IC to '
                                f'make FTBS work\n Time = {self.current_time:.3f}')
         print(f't={self.t}, dt={self.dt:.5f}, '
               f'current_time={self.current_time:.3f}, ' 
@@ -151,7 +181,7 @@ class doEvolution:
         self.current_time += self.dt
         self.t += 1
   
-
+        return self.hOld, self.uOld, self.h, self.u, self.dt, self.nt, self.t, self.current_time,
 #%% Params 
 
 if __name__ == '__main__':
@@ -159,4 +189,5 @@ if __name__ == '__main__':
     nx = 100
     t_end = 0.1
     
-    GIFtime()
+    #GIFtime()
+    produceStaticPlot(h_lims = [0.9,2], u_lims = [7.5,12], t_range = 100, t_sample = 4)

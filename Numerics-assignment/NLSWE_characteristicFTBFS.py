@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from NLSWE_specialisedIC import plottingSetup, doEvolution
+from NLSWE_specialisedIC import plottingSetup ,doEvolution
 
 
 #%% Function Definitions
@@ -40,13 +40,40 @@ def processInitialData(h0, u0, nx, t_end, g, H):
     
     return Q1Old, Q2Old, Q1, Q2, h, u, x, dx, dt, nt
 
+def produceStaticPlot(h_lims, u_lims, t_range, t_sample):
+    if t_sample > 4:
+        raise Exception("t_sample must be between 1 and 4 because I didn't have time to generalise this")
+    t=0
+    current_time=0
+
+    fig, ax = plottingSetup(h_lims, u_lims)
+    
+    fig.suptitle('Non-linear 1-D SWE with arbitrary smooth IC')
+    
+    Q1Old, Q2Old, Q1, Q2, h, u, x, dx, dt, nt = processInitialData(h0, u0, nx, t_end, g, H)
+    
+    uOld = hOld = 'placeholder'
+    
+    for t in range(t_range + 1):
+        colours = ['b','r','g','orange'] #This does not support t_sample > 4...
+        quotient, remainder = divmod(t,t_range//(t_sample-1))
+        if remainder==0:
+            ax[0].plot(x,h,c=colours[quotient-1],label=f't = {current_time:.3f}')
+            ax[1].plot(x,u,c=colours[quotient-1])
+        evolution = doCharacteristicEvolution(hOld, uOld, h, u, x, dx, nx, dt, nt, 
+                                             t, current_time, Q1, Q2, Q1Old, Q2Old)
+        Q1Old, Q2Old, Q1, Q2, h, u, dt, nt, t, current_time = evolution.timestep('')
+    fig.legend(loc='upper center', bbox_to_anchor=(0.525, 0.95), ncol=t_sample, frameon=False)
+    plt.savefig('NLSWE_arbitrarysmoothIC.pdf')
+    plt.show()
+
 
 def GIFtime():
     t=0
     current_time=0
 
     # Set up axes and initial data
-    fig, line_h, line_u = plottingSetup([0.9,2], [-1,1])
+    fig, line_h, line_u = plottingSetup([0.9,2], [-1,1], GIF=True)
     Q1Old, Q2Old, Q1, Q2, h, u, x, dx, dt, nt = processInitialData(h0, u0, nx, 
                                                                   t_end, g, H)
    
@@ -62,8 +89,8 @@ def GIFtime():
     uOld = hOld = 'placeholder'
    
     evolution = doCharacteristicEvolution(hOld, uOld, h, u, x, dx, nx, dt, nt, 
-                                         t, current_time, line_h, line_u, 
-                                         suptitle, Q1, Q2, Q1Old, Q2Old)
+                                         t, current_time, Q1, Q2, Q1Old, Q2Old, line_h, line_u, 
+                                         suptitle)
     
     ani = FuncAnimation(fig, evolution.timestep, frames=nt, blit=False, 
                        repeat=False)
@@ -74,10 +101,10 @@ def GIFtime():
 
 class doCharacteristicEvolution(doEvolution):
     
-    def __init__(self, hOld, uOld, h, u, x, dx, nx, dt, nt, t, current_time, 
-                 line_h, line_u, suptitle, Q1, Q2, Q1Old, Q2Old):
+    def __init__(self, hOld, uOld, h, u, x, dx, nx, dt, nt, t, current_time, Q1, Q2, Q1Old, Q2Old,
+                 line_h=0, line_u=0, suptitle=''):
         super().__init__(hOld, uOld, h, u, x, dx, dt, nt, t, current_time, 
-                     line_h, line_u, suptitle)
+                     line_h = line_h, line_u = line_u, suptitle = suptitle)
         self.nx = nx
         self.Q1 = Q1
         self.Q2 = Q2
@@ -108,10 +135,12 @@ class doCharacteristicEvolution(doEvolution):
         self.u = self.Q1 - self.Q2
         
         # Set axis data
-        self.line_h.set_data(self.x, self.h)
-        self.line_u.set_data(self.x, self.u)
-        
-        self.suptitle.set_text(f'Non-linear 1-D SWE with arbitrary smooth IC'
+        if (self.line_h != 0) & (self.line_u != 0):
+            self.line_h.set_data(self.x, self.h)
+            self.line_u.set_data(self.x, self.u)
+            
+        if self.suptitle != '':
+            self.suptitle.set_text(f'Non-linear 1-D SWE with arbitrary smooth IC'
                                f'\n Time = {self.current_time:.3f}')
         print(f't={self.t}, dt={self.dt:.5f}, '
               f'current_time={self.current_time:.3f}, ' 
@@ -121,13 +150,14 @@ class doCharacteristicEvolution(doEvolution):
         self.current_time += self.dt
         self.t += 1
 
-
+        return self.Q1Old, self.Q2Old, self.Q1, self.Q2, self.h, self.u, self.dt, self.nt, self.t, self.current_time
 #%% Params
 
 if __name__ == '__main__':
     g = 9.81
     H = 1
     nx = 100
-    t_end = 0.2
+    t_end = 0.1
 
     GIFtime()
+    #produceStaticPlot(h_lims = [0.9,2], u_lims = [-1,1], t_range = 50, t_sample = 4)
