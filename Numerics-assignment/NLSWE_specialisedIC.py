@@ -14,6 +14,7 @@ def plottingSetup(h_lims, u_lims):
     fig_width_inches = 1 / 72.27 * 443.57848
     fig_height_inches = fig_width_inches * ( -1 + np.sqrt(5) ) / 2
     
+    # Set up empty axes with appropriate labels
     fig, ax = plt.subplots(1,2,figsize=(fig_width_inches, fig_height_inches))
     line_h, = ax[0].plot([], [],'b', label='h')
     line_u, = ax[1].plot([], [],'r', label='u')
@@ -34,48 +35,53 @@ def plottingSetup(h_lims, u_lims):
 
 # Initial data
 def h0(x):
-    return 1+ np.exp(-5*x**2)
+    return 1 + np.exp(-5*x**2)
 
 def u0(x):
     return 10*np.ones_like(x)
 
 def processInitialData(h0, u0, nx, t_end, g):
     
+    # Define space discretisation
     dx = 1/nx
     x = np.linspace(-1, 1, nx+1)
     
+    # Define initial data and previous-timestep arrays
     h = h0(x)
     u = u0(x)
     hOld = h.copy()
     uOld = u.copy()
 
+    # Obey intial CFL condition 
     intialStableWaveSpeed = np.max(uOld) + np.sqrt(np.max(g*hOld))
-    dt =  0.99 *dx / intialStableWaveSpeed #CFL 
+    dt =  0.99 *dx / intialStableWaveSpeed
      
+    # Ensure number of timesteps is reachable
     nt = int(np.ceil(t_end/dt))
     
     return hOld, uOld, h, u, x, dx, dt, nt
 
 
 def GIFtime():
-   t=0
-   current_time=0
+    t=0
+    current_time=0
 
-   fig, line_h, line_u = plottingSetup([0.9,2], [7.5,12])
-   hOld, uOld, h, u, x, dx, dt, nt = processInitialData(h0, u0, nx, t_end, g)
+    # Set up axes and initial data
+    fig, line_h, line_u = plottingSetup([0.9,2], [7.5,12])
+    hOld, uOld, h, u, x, dx, dt, nt = processInitialData(h0, u0, nx, t_end, g)
     
-   suptitle = fig.suptitle('Non-linear 1-D SWE with specialised IC to make '
+    suptitle = fig.suptitle('Non-linear 1-D SWE with specialised IC to make '
                            'FTBS work')
    
-   print('Rendering GIF. Please stand by.')
+    print('Rendering GIF. Please stand by.')
    
-   evolution = doEvolution(hOld, uOld, h, u, x, dx, dt, nt, t, current_time, 
+    evolution = doEvolution(hOld, uOld, h, u, x, dx, dt, nt, t, current_time, 
                            line_h, line_u, suptitle)
     
-   ani = FuncAnimation(fig, evolution.timestep, frames=nt, blit=False, 
+    ani = FuncAnimation(fig, evolution.timestep, frames=nt, blit=False, 
                        repeat=False)
-   ani.save('FTBS_NLSWE_specialIC.gif', writer='pillow', fps=20)
-   plt.show()
+    ani.save('FTBS_NLSWE_specialIC.gif', writer='pillow', fps=20)
+
 #%% Time stepping
 
 
@@ -97,9 +103,21 @@ class doEvolution:
         self.line_u = line_u
         self.suptitle = suptitle
         
+    def timeOvershootChecker(self, t_end):
+        # If current_time happens to exactly reach t_end, stop the evolution 
+        # and do not update nt else a division by zero error would occur.
+        # Else, if the next timestep is about to overshoot t_end, update dt and
+        # nt to exactly stop at the right time.
+        if self.current_time == t_end:
+            self.dt = t_end - self.current_time
+        elif self.current_time + self.dt > t_end:
+            self.dt = t_end - self.current_time
+            self.nt = int(np.ceil(t_end/self.dt))
+            
+    
     ## Using Durran's NL-SWE formualtion
     def timestep(self, frame):
-        #Vectorised FTBS
+        # Vectorised FTBS
         self.h[1:] = self.hOld[1:] - self.dt/self.dx * (self.uOld[1:] * 
                     (self.hOld[1:] - self.hOld[:-1]) + self.hOld[1:] * 
                     (self.uOld[1:] - self.uOld[:-1]))
@@ -107,17 +125,19 @@ class doEvolution:
                     (self.uOld[1:] - self.uOld[:-1]) + g * 
                     (self.hOld[1:] - self.hOld[:-1]))
     
-        #PBCs
+        # Apply PBCs
         self.h[0] = self.h[-1] 
         self.u[0] = self.u[-1]
     
+        # Update previous timestep
         self.hOld = self.h.copy()
         self.uOld = self.u.copy()
         
+        # Determine the new maximum stable wavespeed and update dt accordingly
         uTemp = abs(self.uOld) + np.sqrt(g*self.hOld)
         self.dt = min(self.dx / max(uTemp), self.dt)   
     
-        
+        # Set axis data
         self.line_h.set_data(self.x, self.h)
         self.line_u.set_data(self.x, self.u)
         
@@ -126,13 +146,8 @@ class doEvolution:
         print(f't={self.t}, dt={self.dt:.5f}, '
               f'current_time={self.current_time:.3f}, ' 
               f'CFL={max(abs(self.u))*self.dt/self.dx:.2f}')
-        plt.pause(0.01)
         
-        if self.current_time == t_end:
-            self.dt = t_end - self.current_time
-        elif self.current_time + self.dt > t_end:
-            self.dt = t_end - self.current_time
-            self.nt = int(np.ceil(t_end/self.dt))
+        self.timeOvershootChecker(t_end)
         self.current_time += self.dt
         self.t += 1
   
