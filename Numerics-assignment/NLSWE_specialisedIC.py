@@ -45,7 +45,7 @@ def h0(x):
 def u0(x,U0):
     return U0*np.ones_like(x)
 
-def processInitialData(h0, u0, U0, nx, t_end, g):
+def processInitialData(h0, u0, U0, nx, g, t_end=False):
     
     # Define space discretisation
     dx = 1/nx
@@ -61,10 +61,12 @@ def processInitialData(h0, u0, U0, nx, t_end, g):
     intialStableWaveSpeed = np.max(uOld) + np.sqrt(np.max(g*hOld))
     dt = 0.99 * dx / intialStableWaveSpeed
      
-    # Ensure number of timesteps is reachable
-    nt = int(np.ceil(t_end/dt))
-    
-    return hOld, uOld, h, u, x, dx, dt, nt
+    if t_end:
+        # Ensure number of timesteps is reachable
+        nt = int(np.ceil(t_end/dt))
+        return hOld, uOld, h, u, x, dx, dt, nt
+    else:
+        return hOld, uOld, h, u, x, dx, dt
 
 def justPlotTheseTimesteps(t_simulation_range, t_plotting_range, t_sample, t, current_time, ax, x, h, u):
     # Obviously there are plenty of other exceptions I could catch such as any 
@@ -82,19 +84,19 @@ def justPlotTheseTimesteps(t_simulation_range, t_plotting_range, t_sample, t, cu
             ax[0].plot(x,h,c=colours[quotient],label=f't = {current_time:.3f}')
             ax[1].plot(x,u,c=colours[quotient])
 
-def produceStaticPlot(h0, h_lims, u_lims, U0, nx, g, t_end, t_simulation_range, t_plotting_range, t_sample, suptitle, filename):
+def produceStaticPlot(h0, h_lims, u_lims, U0, nx, g, t_simulation_range, t_plotting_range, t_sample, suptitle, filename):
     current_time=0
 
     fig, ax = plottingSetup(h_lims, u_lims)
     
     fig.suptitle(suptitle)
     
-    hOld, uOld, h, u, x, dx, dt, nt = processInitialData(h0, u0, U0, nx, t_end, g)
+    hOld, uOld, h, u, x, dx, dt = processInitialData(h0, u0, U0, nx, g)
     
     for t in range(t_simulation_range + 1):
         justPlotTheseTimesteps(t_simulation_range, t_plotting_range, t_sample, t, current_time, ax, x, h, u)
-        evolution = doEvolution(hOld, uOld, h, u, x, dx, dt, nt, t, current_time, t_end, g)
-        hOld, uOld, h, u, dt, nt, t, current_time = evolution.timestep('')
+        evolution = doEvolution(hOld, uOld, h, u, x, dx, dt, t, current_time, g)
+        hOld, uOld, h, u, dt, t, current_time = evolution.timestep('')
     fig.legend(loc='upper center', bbox_to_anchor=(0.525, 0.95), ncol=t_sample, frameon=False)
     plt.savefig(f'{filename}.pdf')
     plt.show()
@@ -105,13 +107,13 @@ def GIFtime():
 
     # Set up axes and initial data
     fig, line_h, line_u = plottingSetup([0.9,2], [0.5*U0,1.5*U0], GIF=True)
-    hOld, uOld, h, u, x, dx, dt, nt = processInitialData(h0, u0, U0, nx, t_end, g)
+    hOld, uOld, h, u, x, dx, dt, nt = processInitialData(h0, u0, U0, nx, g, t_end)
     
     suptitle = fig.suptitle(fr'Non-linear 1-D SWE with specialised IC $u_0$ = {U0}')
    
     print('Rendering GIF. Please stand by.')
    
-    evolution = doEvolution(hOld, uOld, h, u, x, dx, dt, nt, t, current_time, 
+    evolution = doEvolution(hOld, uOld, h, u, x, dx, dt, t, current_time, g, nt, t_end, 
                            line_h, line_u, suptitle)
     
     ani = FuncAnimation(fig, evolution.timestep, frames=nt, blit=False, 
@@ -123,8 +125,8 @@ def GIFtime():
 
 class doEvolution:
     
-    def __init__(self, hOld, uOld, h, u, x, dx, dt, nt, t, current_time, t_end, g, 
-                 line_h=0, line_u=0, suptitle=''):
+    def __init__(self, hOld, uOld, h, u, x, dx, dt, t, current_time, g, nt = False, t_end=False,
+                 line_h=False, line_u=False, suptitle=False):
         self.hOld = hOld
         self.uOld = uOld
         self.h = h
@@ -176,28 +178,32 @@ class doEvolution:
         self.dt = min(self.dx / max(uTemp), self.dt)   
     
         # Set axis data
-        if (self.line_h != 0) & (self.line_u != 0):
+        if bool(self.line_h) & bool(self.line_u):
             self.line_h.set_data(self.x, self.h)
             self.line_u.set_data(self.x, self.u)
             
-        if self.suptitle !='':
-            self.suptitle.set_text(fr'Non-linear 1-D SWE with specialised IC $u_0$ = {U0}\n Time = {self.current_time:.3f}')
+        if bool(self.suptitle):
+            self.suptitle.set_text(f'Non-linear 1-D SWE with specialised IC $u_0$ = {U0} \n Time = {self.current_time:.3f}')
         print(f't={self.t}, dt={self.dt:.5f}, '
               f'current_time={self.current_time:.3f}, ' 
               f'CFL={max(abs(self.u))*self.dt/self.dx:.2f}')
         
-        self.timeOvershootChecker(self.t_end)
-        self.current_time += self.dt
-        self.t += 1
-  
-        return self.hOld, self.uOld, self.h, self.u, self.dt, self.nt, self.t, self.current_time,
+        if bool(self.t_end) & bool(self.nt):
+            self.timeOvershootChecker(self.t_end)
+            self.current_time += self.dt
+            self.t += 1
+
+            return self.hOld, self.uOld, self.h, self.u, self.dt, self.nt, self.t, self.current_time
+        else:
+            self.current_time += self.dt
+            return self.hOld, self.uOld, self.h, self.u, self.dt, self.t, self.current_time
 #%% Params 
 
 if __name__ == '__main__':
     g = 9.81
     nx = 100
-    t_end = 0.25
+    t_end = 0.1
     U0 = 10
     
-    #GIFtime()
-    produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [0.5*U0,1.5*U0], U0=U0, nx=nx, g=g, t_end=t_end, t_simulation_range = 250, t_plotting_range =[180, 200] , t_sample = 4, suptitle = fr'Non-linear 1-D SWE with $h_0 = 1 + e^{{-5x^2}}$, $u_0$ = {U0}',  filename='NLSWE_specialisedIC')
+    GIFtime()
+    #produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [0.5*U0,1.5*U0], U0=U0, nx=nx, g=g, t_simulation_range = 250, t_plotting_range = [180, 200] , t_sample = 4, suptitle = fr'Non-linear 1-D SWE with $h_0 = 1 + e^{{-5x^2}}$, $u_0$ = {U0}',  filename='NLSWE_specialisedIC')
