@@ -1,3 +1,0 @@
-# Code for MFC CDT PhD
-
-To be organised later...
