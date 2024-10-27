@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from NLSWE_specialisedIC import plottingSetup ,doEvolution
+from NLSWE_specialisedIC import plottingSetup, justPlotTheseTimesteps, doEvolution
 
 
 #%% Function Definitions
@@ -54,12 +54,7 @@ def produceStaticPlot(h0, h_lims, u_lims, nx, g, H, t_end, t_simulation_range, t
     uOld = hOld = 'placeholder'
     
     for t in range(t_simulation_range + 1):
-        colours = ['b','r','g','orange'] #This does not support t_sample > 4...
-        if t_plotting_range[0] <= t <= t_plotting_range[1]:
-            quotient, remainder = divmod(t - t_plotting_range[0], (t_plotting_range[1] - t_plotting_range[0]) // (t_sample - 1))
-            if remainder==0:
-                ax[0].plot(x,h,c=colours[quotient],label=f't = {current_time:.3f}')
-                ax[1].plot(x,u,c=colours[quotient])
+        justPlotTheseTimesteps(t_simulation_range, t_plotting_range, t_sample, t, current_time, ax, x, h, u)
         evolution = doCharacteristicEvolution(hOld, uOld, h, u, x, dx, nx, dt, nt, 
                                              t, current_time, t_end, g, H, Q1, Q2, Q1Old, Q2Old)
         Q1Old, Q2Old, Q1, Q2, h, u, dt, nt, t, current_time = evolution.timestep('')

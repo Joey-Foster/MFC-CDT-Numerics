@@ -66,8 +66,7 @@ def processInitialData(h0, u0, U0, nx, t_end, g):
     
     return hOld, uOld, h, u, x, dx, dt, nt
 
-def produceStaticPlot(h0, h_lims, u_lims, U0, nx, g, t_end, t_simulation_range, t_plotting_range, t_sample, suptitle, filename):
-    
+def justPlotTheseTimesteps(t_simulation_range, t_plotting_range, t_sample, t, current_time, ax, x, h, u):
     # Obviously there are plenty of other exceptions I could catch such as any 
     # of the t_range's being a non-integer, or t_plotting_range[1] > t_simulation_range
     # but to an expert in the field reading this code, those restrictions should
@@ -75,6 +74,15 @@ def produceStaticPlot(h0, h_lims, u_lims, U0, nx, g, t_end, t_simulation_range, 
     # being limited to at most 4, so it deserves a raise Exception.
     if t_sample > 4:
         raise Exception("t_sample must be between 1 and 4 because I didn't have time to generalise this")
+        
+    colours = ['b','r','g','orange'] #This does not support t_sample > 4...
+    if t_plotting_range[0] <= t <= t_plotting_range[1]:
+        quotient, remainder = divmod(t - t_plotting_range[0], (t_plotting_range[1] - t_plotting_range[0]) // (t_sample - 1))
+        if remainder==0:
+            ax[0].plot(x,h,c=colours[quotient],label=f't = {current_time:.3f}')
+            ax[1].plot(x,u,c=colours[quotient])
+
+def produceStaticPlot(h0, h_lims, u_lims, U0, nx, g, t_end, t_simulation_range, t_plotting_range, t_sample, suptitle, filename):
     current_time=0
 
     fig, ax = plottingSetup(h_lims, u_lims)
@@ -84,12 +92,7 @@ def produceStaticPlot(h0, h_lims, u_lims, U0, nx, g, t_end, t_simulation_range, 
     hOld, uOld, h, u, x, dx, dt, nt = processInitialData(h0, u0, U0, nx, t_end, g)
     
     for t in range(t_simulation_range + 1):
-        colours = ['b','r','g','orange'] #This does not support t_sample > 4...
-        if t_plotting_range[0] <= t <= t_plotting_range[1]:
-            quotient, remainder = divmod(t - t_plotting_range[0], (t_plotting_range[1] - t_plotting_range[0]) // (t_sample - 1))
-            if remainder==0:
-                ax[0].plot(x,h,c=colours[quotient],label=f't = {current_time:.3f}')
-                ax[1].plot(x,u,c=colours[quotient])
+        justPlotTheseTimesteps(t_simulation_range, t_plotting_range, t_sample, t, current_time, ax, x, h, u)
         evolution = doEvolution(hOld, uOld, h, u, x, dx, dt, nt, t, current_time, t_end, g)
         hOld, uOld, h, u, dt, nt, t, current_time = evolution.timestep('')
     fig.legend(loc='upper center', bbox_to_anchor=(0.525, 0.95), ncol=t_sample, frameon=False)
@@ -197,4 +200,4 @@ if __name__ == '__main__':
     U0 = 10
     
     #GIFtime()
-    produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [0.5*U0,1.5*U0], U0=U0, nx=nx, g=g, t_end=t_end, t_simulation_range = 250, t_plotting_range =[180, 200] , t_sample = 4, suptitle = 'Non-linear 1-D SWE with $h_0 = 1 + e^{{{-5x^2}}}$, $u_0$ = {U0}',  filename='NLSWE_specialisedIC')
+    produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [0.5*U0,1.5*U0], U0=U0, nx=nx, g=g, t_end=t_end, t_simulation_range = 250, t_plotting_range =[180, 200] , t_sample = 4, suptitle = fr'Non-linear 1-D SWE with $h_0 = 1 + e^{{-5x^2}}$, $u_0$ = {U0}',  filename='NLSWE_specialisedIC')
