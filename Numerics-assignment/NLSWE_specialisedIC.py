@@ -59,14 +59,14 @@ def processInitialData(h0, u0, U0, nx, t_end, g):
 
     # Obey intial CFL condition 
     intialStableWaveSpeed = np.max(uOld) + np.sqrt(np.max(g*hOld))
-    dt =  1.1 *dx / intialStableWaveSpeed
+    dt = 0.99 * dx / intialStableWaveSpeed
      
     # Ensure number of timesteps is reachable
     nt = int(np.ceil(t_end/dt))
     
     return hOld, uOld, h, u, x, dx, dt, nt
 
-def produceStaticPlot(h_lims, u_lims, t_simulation_range, t_plotting_range, t_sample):
+def produceStaticPlot(h0, h_lims, u_lims, U0, nx, g, t_end, t_simulation_range, t_plotting_range, t_sample, suptitle, filename):
     
     # Obviously there are plenty of other exceptions I could catch such as any 
     # of the t_range's being a non-integer, or t_plotting_range[1] > t_simulation_range
@@ -79,7 +79,7 @@ def produceStaticPlot(h_lims, u_lims, t_simulation_range, t_plotting_range, t_sa
 
     fig, ax = plottingSetup(h_lims, u_lims)
     
-    fig.suptitle(fr'Non-linear 1-D SWE with specialised IC $u_0$ = {U0}')
+    fig.suptitle(suptitle)
     
     hOld, uOld, h, u, x, dx, dt, nt = processInitialData(h0, u0, U0, nx, t_end, g)
     
@@ -90,10 +90,10 @@ def produceStaticPlot(h_lims, u_lims, t_simulation_range, t_plotting_range, t_sa
             if remainder==0:
                 ax[0].plot(x,h,c=colours[quotient],label=f't = {current_time:.3f}')
                 ax[1].plot(x,u,c=colours[quotient])
-        evolution = doEvolution(hOld, uOld, h, u, x, dx, dt, nt, t, current_time)
+        evolution = doEvolution(hOld, uOld, h, u, x, dx, dt, nt, t, current_time, t_end, g)
         hOld, uOld, h, u, dt, nt, t, current_time = evolution.timestep('')
     fig.legend(loc='upper center', bbox_to_anchor=(0.525, 0.95), ncol=t_sample, frameon=False)
-    plt.savefig('NLSWE_specialIC.pdf')
+    plt.savefig(f'{filename}.pdf')
     plt.show()
 
 def GIFtime():
@@ -120,7 +120,7 @@ def GIFtime():
 
 class doEvolution:
     
-    def __init__(self, hOld, uOld, h, u, x, dx, dt, nt, t, current_time, 
+    def __init__(self, hOld, uOld, h, u, x, dx, dt, nt, t, current_time, t_end, g, 
                  line_h=0, line_u=0, suptitle=''):
         self.hOld = hOld
         self.uOld = uOld
@@ -132,6 +132,8 @@ class doEvolution:
         self.nt = nt
         self.t = t
         self.current_time = current_time
+        self.t_end = t_end
+        self.g = g
         self.line_h = line_h
         self.line_u = line_u
         self.suptitle = suptitle
@@ -155,7 +157,7 @@ class doEvolution:
                     (self.hOld[1:] - self.hOld[:-1]) + self.hOld[1:] * 
                     (self.uOld[1:] - self.uOld[:-1]))
         self.u[1:] = self.uOld[1:] - self.dt/self.dx * (self.uOld[1:] *
-                    (self.uOld[1:] - self.uOld[:-1]) + g * 
+                    (self.uOld[1:] - self.uOld[:-1]) + self.g * 
                     (self.hOld[1:] - self.hOld[:-1]))
     
         # Apply PBCs
@@ -167,8 +169,8 @@ class doEvolution:
         self.uOld = self.u.copy()
         
         # Determine the new maximum stable wavespeed and update dt accordingly
-        uTemp = abs(self.uOld) + np.sqrt(g*self.hOld)
-        self.dt = min(1.1* self.dx / max(uTemp), self.dt)   
+        uTemp = abs(self.uOld) + np.sqrt(self.g*self.hOld)
+        self.dt = min(self.dx / max(uTemp), self.dt)   
     
         # Set axis data
         if (self.line_h != 0) & (self.line_u != 0):
@@ -181,7 +183,7 @@ class doEvolution:
               f'current_time={self.current_time:.3f}, ' 
               f'CFL={max(abs(self.u))*self.dt/self.dx:.2f}')
         
-        self.timeOvershootChecker(t_end)
+        self.timeOvershootChecker(self.t_end)
         self.current_time += self.dt
         self.t += 1
   
@@ -192,7 +194,7 @@ if __name__ == '__main__':
     g = 9.81
     nx = 100
     t_end = 0.25
-    U0 = 6
+    U0 = 10
     
     #GIFtime()
-    produceStaticPlot(h_lims = [0.9,2], u_lims = [0.5*U0,1.5*U0], t_simulation_range = 250, t_plotting_range =[180, 200] , t_sample = 4)
+    produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [0.5*U0,1.5*U0], U0=U0, nx=nx, g=g, t_end=t_end, t_simulation_range = 250, t_plotting_range =[180, 200] , t_sample = 4, suptitle = 'Non-linear 1-D SWE with $h_0 = 1 + e^{{{-5x^2}}}$, $u_0$ = {U0}',  filename='NLSWE_specialisedIC')
