@@ -29,7 +29,9 @@ def plottingSetup(h_lims, u_lims, GIF=False):
             a.legend(loc='upper left')
         a.set_xlabel('$x$')
         a.set_xlim([-1,1])
+        a.grid()
     plt.tight_layout()
+  
     
     plt.subplots_adjust(top=0.85)
     
