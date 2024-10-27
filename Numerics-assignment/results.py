@@ -39,6 +39,9 @@ produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [3.5,6.5], U0=U0, nx=nx, g=g, t
                   suptitle = fr'Non-linear 1-D SWE with $h_0 = 1 + e^{{-5x^2}}$, $u_0$ = {U0}', 
                   filename = 'cheating_attempt_stable')
 
-from NLSWE_characteristicFTBFS import produceStaticPlot
+# from NLSWE_characteristicFTBFS import produceStaticPlot
 
-produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [-1,1], nx = nx, g = g, H = H, t_end = t_end, t_simulation_range = 200, t_plotting_range = [180,200], t_sample = 4, suptitle = r'Non-linear 1-D SWE with $h_0 = 1 + e^{-5x^2}$, $u_0 = 0$', filename = 'NLSWE_arbitraryIC')
+# produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [-1,1], nx = nx, g = g, H = H, t_end = t_end, 
+#                   t_simulation_range = 200, t_plotting_range = [180,200], t_sample = 4, 
+#                   suptitle = r'Non-linear 1-D SWE with $h_0 = 1 + e^{-5x^2}$, $u_0 = 0$', 
+#                   filename = 'NLSWE_arbitraryIC')
