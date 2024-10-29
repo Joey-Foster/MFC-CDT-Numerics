@@ -5,12 +5,13 @@ from matplotlib.animation import FuncAnimation
 #%% Function Defintions
 
 def plottingSetup(h_lims, u_lims, GIF=False):
-    #Make the plot aspect ratios and text look nice
+    #Make the plot text and aspect ratio look nice
     params = {'text.usetex' : True,
               'font.size' : 11,
               'font.family' : 'lmodern',
               }
     plt.rcParams.update(params) 
+    # pts-to-inches conversion * #pts in width of latex doc with 1in margins
     fig_width_inches = 1 / 72.27 * 443.57848
     fig_height_inches = fig_width_inches * ( -1 + np.sqrt(5) ) / 2
     
@@ -63,6 +64,7 @@ def processInitialData(h0, u0, U0, nx, g, t_end=False):
     intialStableWaveSpeed = np.max(uOld) + np.sqrt(np.max(g*hOld))
     dt = 0.99 * dx / intialStableWaveSpeed
      
+    # Using the truthiness of t_end
     if t_end:
         # Ensure number of timesteps is reachable
         nt = int(np.ceil(t_end/dt))
@@ -70,7 +72,7 @@ def processInitialData(h0, u0, U0, nx, g, t_end=False):
     else:
         return hOld, uOld, h, u, x, dx, dt
 
-def justPlotTheseTimesteps(t_simulation_range, t_plotting_range, t_sample, t, current_time, ax, x, h, u):
+def justPlotTheseTimesteps(t_plotting_range, t_sample, t, current_time, ax, x, h, u):
     # Obviously there are plenty of other exceptions I could catch such as any 
     # of the t_range's being a non-integer, or t_plotting_range[1] > t_simulation_range
     # but to an expert in the field reading this code, those restrictions should
@@ -96,7 +98,7 @@ def produceStaticPlot(h0, h_lims, u_lims, U0, nx, g, t_simulation_range, t_plott
     hOld, uOld, h, u, x, dx, dt = processInitialData(h0, u0, U0, nx, g)
     
     for t in range(t_simulation_range + 1):
-        justPlotTheseTimesteps(t_simulation_range, t_plotting_range, t_sample, t, current_time, ax, x, h, u)
+        justPlotTheseTimesteps(t_plotting_range, t_sample, t, current_time, ax, x, h, u)
         evolution = doEvolution(hOld, uOld, h, u, x, dx, dt, t, current_time, g)
         hOld, uOld, h, u, dt, t, current_time = evolution.timestep('')
     fig.legend(loc='upper center', bbox_to_anchor=(0.525, 0.95), ncol=t_sample, frameon=False)
