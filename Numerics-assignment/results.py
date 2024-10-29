@@ -8,7 +8,7 @@ H=1
 nx = 100
 U0 = 0
 
-guassian, cosine  = [lambda x: 1 + np.exp(-5*x**2), lambda x: np.power(np.cos(np.pi *x),2)]
+guassian, cosine  = [lambda x: 1 + np.exp(-5*x**2), lambda x: 1 + 0.5*np.power(np.cos(np.pi *x),2)]
 
 h0 = guassian
 
@@ -23,9 +23,9 @@ h0 = cosine
 
 print('\nLogging console data for figure 2:')
 #Figure 2
-produceStaticPlot(h0, h_lims = [0,1], u_lims = [-3,3], U0=U0, nx=nx, g=g, 
-                  t_simulation_range = 20, t_plotting_range =[10, 20] , t_sample = 4, 
-                  suptitle = fr'Non-linear 1-D SWE with $h_0 = \cos^2(\pi x)$, $u_0$ = {U0}', 
+produceStaticPlot(h0, h_lims = [1,2], u_lims = [-1,1], U0=U0, nx=nx, g=g, 
+                  t_simulation_range = 35, t_plotting_range =[20, 32] , t_sample = 4, 
+                  suptitle = fr'Non-linear 1-D SWE with $h_0 = 1 + \frac{{1}}{{2}}\cos^2(\pi x)$, $u_0$ = {U0}', 
                   filename = 'unstable_attempt_cosine')
 
 h0 = guassian

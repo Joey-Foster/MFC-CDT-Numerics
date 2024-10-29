@@ -8,7 +8,8 @@ from NLSWE_specialisedIC import plottingSetup, justPlotTheseTimesteps, doEvoluti
 
 # Initial data
 def h0(x):
-    return 1 + np.exp(-10*x**2)
+    return 1 + np.exp(-5*x**2)
+    #return 1 + 0.5* np.power(np.cos(np.pi * x),2)
 
 def u0(x):
     return 0*x
@@ -33,7 +34,7 @@ def processInitialData(h0, u0, nx, g, H, t_end=False):
 
     # Obey the CFL condition (derived from linearised SWE)
     stableWaveSpeed = np.sqrt(g*H)
-    dt =  0.99 * dx / (2 * stableWaveSpeed) 
+    dt =  0.85 * dx / stableWaveSpeed 
      
     if t_end:
         # Ensure number of timesteps is reachable
@@ -89,7 +90,7 @@ def GIFtime():
     
     ani = FuncAnimation(fig, evolution.timestep, frames=nt, blit=False, 
                        repeat=False)
-    ani.save('FTBS_NLSWE_arbitrarysmoothIC.gif', writer='pillow', fps=20)
+    ani.save('FTBFS_NLSWE_arbitrarysmoothIC.gif', writer='pillow', fps=20)
 
 
 #%% Time stepping
@@ -139,7 +140,7 @@ class doCharacteristicEvolution(doEvolution):
                                f'\n Time = {self.current_time:.3f}')
         print(f't={self.t}, dt={self.dt:.5f}, '
               f'current_time={self.current_time:.3f}, ' 
-              f'CFL={2*np.sqrt(self.g*self.H)*self.dt/self.dx:.2f}')
+              f'CFL={np.sqrt(self.g*self.H)*self.dt/self.dx:.2f}')
         
         if bool(self.t_end) & bool(self.nt):
             self.timeOvershootChecker(self.t_end)
@@ -154,9 +155,9 @@ class doCharacteristicEvolution(doEvolution):
 
 if __name__ == '__main__':
     g = 9.81
-    H = 1
+    H = 1.4
     nx = 100
-    t_end = 0.1
+    t_end = 0.5
 
     GIFtime()
     #produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [-1,1], nx = nx, g = g, H = H, t_end = t_end, t_simulation_range = 200, t_plotting_range = [180,200], t_sample = 4, suptitle = r'Non-linear 1-D SWE with $h_0 = 1 + e^{-5x^2}$, $u_0 = 0$', filename = 'NLSWE_arbitraryIC')
