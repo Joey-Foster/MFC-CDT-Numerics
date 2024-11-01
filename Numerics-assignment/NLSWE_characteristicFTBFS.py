@@ -131,7 +131,7 @@ def GIFtime():
     fig, line_h, line_u = plottingSetup([0.9,2], [-1,1], GIF=True)
     Q1Old, Q2Old, Q1, Q2, h, u, x, dx, dt, nt = processInitialData(h0, u0, nx, g, H, mu, t_end)
    
-    suptitle = fig.suptitle('Non-linear 1-D SWE with arbitrary smooth IC')
+    suptitle = fig.suptitle(r'Non-linear 1-D SWE with IC $u_0 = 0$')
    
     print('Rendering GIF. Please stand by.')
    
@@ -143,7 +143,7 @@ def GIFtime():
     
     ani = FuncAnimation(fig, evolution.timestep, frames=nt, blit=False, 
                        repeat=False)
-    ani.save('FTBFS_NLSWE_arbitrarysmoothIC.gif', writer='pillow', fps=20)
+    ani.save('characteristic_WTF.gif', writer='pillow', fps=20)
 
 
 #%% Time stepping
@@ -224,7 +224,7 @@ class doCharacteristicEvolution(doEvolution):
             self.line_u.set_data(self.x, self.u)
             
         if bool(self.suptitle):
-            self.suptitle.set_text(f'Non-linear 1-D SWE with arbitrary smooth IC'
+            self.suptitle.set_text(fr'Non-linear 1-D SWE with IC $u_0 = 0$'
                                f'\n Time = {self.current_time:.3f}')
         print(f't={self.t}, dt={self.dt:.5f}, '
               f'current_time={self.current_time:.3f}, ' 
@@ -245,8 +245,8 @@ if __name__ == '__main__':
     g = 9.81     # Gravitational constant [ms^-2]
     H = 1.4      # Mean height distribution [m]
     nx = 100     # Number of spatial grid points
-    t_end = 0.3  # End point of the simulation runtime [s]
-    mu = 0.99    # Desired courant number 
+    t_end = 1  # End point of the simulation runtime [s]
+    mu = 0.888    # Desired courant number 
 
     GIFtime()
     # produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [-1,1], nx = nx, g = g, H = H, mu = mu, 

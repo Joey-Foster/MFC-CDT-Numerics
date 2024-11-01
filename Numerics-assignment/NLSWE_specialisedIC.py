@@ -57,6 +57,7 @@ def h0(x):
     Initial datum for the height
     """
     return 1 + np.exp(-5*x**2)
+    #return 1 + 0.5 * np.power(np.cos(np.pi*x),2)
 
 def u0(x, U0):
     """
@@ -191,7 +192,7 @@ def GIFtime():
     current_time=0
 
     # Set up axes and initial data
-    fig, line_h, line_u = plottingSetup([0.9,2], [0.5*U0,1.5*U0], GIF=True)
+    fig, line_h, line_u = plottingSetup([0.9,2], [3,6], GIF=True)
     hOld, uOld, h, u, x, dx, dt, nt = processInitialData(h0, u0, U0, nx, g, t_end)
     
     suptitle = fig.suptitle(fr'Non-linear 1-D SWE with specialised IC $u_0$ = {U0}')
@@ -203,7 +204,7 @@ def GIFtime():
     
     ani = FuncAnimation(fig, evolution.timestep, frames=nt, blit=False, 
                        repeat=False)
-    ani.save('FTBS_NLSWE_specialIC.gif', writer='pillow', fps=20)
+    ani.save('cheating_attempt_unstable.gif', writer='pillow', fps=20)
 
 #%% Time stepping
 
@@ -333,7 +334,7 @@ class doEvolution:
             self.line_u.set_data(self.x, self.u)
             
         if bool(self.suptitle):
-            self.suptitle.set_text(f'Non-linear 1-D SWE with specialised IC $u_0$ = {U0}'
+            self.suptitle.set_text(f'Non-linear 1-D SWE with IC $u_0$ = {U0}'
                                    f'\n Time = {self.current_time:.3f}')
         print(f't={self.t}, dt={self.dt:.5f}, '
               f'current_time={self.current_time:.3f}, ' 
@@ -351,13 +352,13 @@ class doEvolution:
 #%% Params 
 
 if __name__ == '__main__':
-    g = 9.81    # Gravitational constant [ms^-2]
-    nx = 100    # Number of spatial grid points
-    t_end = 0.1 # End point of the simulation runtime [s]
-    U0 = 10     # Initial velocity parameter [ms^-1]
+    g = 9.81     # Gravitational constant [ms^-2]
+    nx = 100     # Number of spatial grid points
+    t_end = 0.2  # End point of the simulation runtime [s]
+    U0 = 4.3     # Initial velocity parameter [ms^-1]
     
     GIFtime()
-    produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [0.5*U0,1.5*U0], U0=U0, nx=nx, g=g, 
-                      t_simulation_range = 250, t_plotting_range = [180, 200] , t_sample = 4, 
-                      suptitle = fr'Non-linear 1-D SWE with $h_0 = 1 + e^{{-5x^2}}$, $u_0$ = {U0}',
-                      filename='NLSWE_specialisedIC')
+    # produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [0.5*U0,1.5*U0], U0=U0, nx=nx, g=g, 
+    #                   t_simulation_range = 250, t_plotting_range = [180, 200] , t_sample = 4, 
+    #                   suptitle = fr'Non-linear 1-D SWE with $h_0 = 1 + e^{{-5x^2}}$, $u_0$ = {U0}',
+    #                   filename='NLSWE_specialisedIC')

@@ -62,7 +62,7 @@ produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [-1,1], nx = nx, g = g, H = H, 
 
 print('\nLogging console data for figure 6:')
 #Figure 6
-produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [-1,1], nx = nx, g = g, H = H, mu = 0.8,
-                  t_simulation_range = 100, t_plotting_range = [74,93], t_sample = 4, 
+produceStaticPlot(h0, h_lims = [0.9,2], u_lims = [-1,1], nx = nx, g = g, H = H, mu = 0.88,
+                  t_simulation_range = 100, t_plotting_range = [68,84], t_sample = 4, 
                   suptitle = r'Non-linear 1-D SWE with $h_0 = 1 + e^{-5x^2}$, $u_0 = 0$', 
                   filename = 'characteristic_attempt_stable')
