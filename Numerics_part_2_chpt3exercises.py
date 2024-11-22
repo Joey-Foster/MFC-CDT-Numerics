@@ -3,32 +3,30 @@ import matplotlib.pyplot as plt
 import scipy.integrate 
 
 #%% Exercise 3.1(c)
-Ne = 2
-# = 1/Ne
-psi = np.zeros(Ne + 1)
-
-K = np.array([[4, -2],[-2, 2]])
-F = np.array([1/4, 1/24])
-
-psi[0] = 0 #Just for clarity - serves no purpose in this implementation
-psi[1:] = np.linalg.solve(K,F)
-
-#print(psi)
-
-def psi_analytic1(x):
-    return x/6 * (x**2 - 3*x + 3)
-
-x_analytic = np.linspace(0, 1, 100)
-x_numeric = np.linspace(0, 1, Ne+1)
-
-plt.plot(x_analytic, psi_analytic1(x_analytic),'-b',label='analytic')
-plt.plot(x_numeric, psi, '--r', label='numeric')
-plt.grid()
-plt.xlabel(r'$x$')
-plt.ylabel(r'$\psi$')
-plt.legend()
-plt.title('Exercise 3.1(c) solution: Solve globally over nodes\n' r'Ne = 2 and $S(x) = 1-x$')
-plt.show()
+def exercise3point1c():
+    Ne = 2
+    # = 1/Ne
+    psi = np.zeros(Ne + 1)
+    
+    K = np.array([[4, -2],[-2, 2]])
+    F = np.array([1/4, 1/24])
+    
+    psi[0] = 0 #Just for clarity - serves no purpose in this implementation
+    psi[1:] = np.linalg.solve(K,F)
+    
+    #print(psi)
+    
+    x_analytic = np.linspace(0, 1, 100)
+    x_numeric = np.linspace(0, 1, Ne+1)
+    
+    plt.plot(x_analytic, psi_analytic1(x_analytic),'-b',label='analytic')
+    plt.plot(x_numeric, psi, '--r', label='numeric')
+    plt.grid()
+    plt.xlabel(r'$x$')
+    plt.ylabel(r'$\psi$')
+    plt.legend()
+    plt.title('Exercise 3.1(c) solution: Solve globally over nodes\n' r'Ne = 2 and $S(x) = 1-x$')
+    plt.show()
 
 #%% Exercise 3.2
 
@@ -160,6 +158,9 @@ def S3(x):
     else:
         return 0
 
+def psi_analytic1(x):
+     return x/6 * (x**2 - 3*x + 3)
+
 def psi_analytic2(x):
     return x/12 * (4 - 6*x + 4*x**2 - x**3)
 
@@ -176,50 +177,54 @@ def psi_analytic3(x):
 
 ###############################################################################
 
-Ne=7
-
-plt.figure()
-
-nodes, soln = OneDimFESolver(Ne, S2, NeumannL=1/2, DirichletR=1/12)
-#nodes, soln = OneDimFESolver(Ne, S2, DirichletL=0, NeumannR=0)
-#nodes, soln = OneDimFESolver(Ne, S2, DirichletL=0, DirichletR=1/12)
-
-x_analytic = np.linspace(0, 1, 100)
-
-plt.plot(x_analytic, psi_analytic2(x_analytic),'-b',label='analytic')
-plt.plot(nodes, soln, '--x', color='r', label='numeric')
-plt.grid()
-plt.xlabel(r'$x$')
-plt.ylabel(r'$\psi$')
-plt.legend()
-plt.title(f'Exercise 3.2 solution: Solve locally over elements\n Ne = {Ne}')
-plt.show()
-
-
-
-
-# sources = [S1, S2, S3]
-# analytics = [psi_analytic1, psi_analytic2, psi_analytic3]
-# DirichletL = [0, None, 0.1]
-# DirichletR = [1/6, 1/12, None]
-# NeumannL = [None, 1/3, None]
-# NeumannR = [None,None,-0.2]
-# latexsourcetitles = ['$S(x) = 1-x$', '$S(x) = (1-x)^2$','$S(x) = \{1$ in the centre, piecewise}']
-
-# for i in range(3):
-#     plt.figure()
-
-#     nodes, soln = OneDimFESolver(Ne, sources[i], 
-#                                  DirichletL=DirichletL[i], DirichletR=DirichletR[i],
-#                                  NeumannL=NeumannL[i], NeumannR=NeumannR[i])
+def exercise3point2(Ne):
     
-#     x_analytic = np.linspace(0, 1, 100)
+    plt.figure()
     
-#     plt.plot(x_analytic, analytics[i](x_analytic),'-b',label='analytic')
-#     plt.plot(nodes, soln, '--x', color='r', label='numeric')
-#     plt.grid()
-#     plt.xlabel(r'$x$')
-#     plt.ylabel(r'$\psi$')
-#     plt.legend()
-#     plt.title(f'Exercise 3.2 solution: Solve locally over elements\n Ne = {Ne}, {latexsourcetitles[i]}')
-#     plt.show()
+    nodes, soln = OneDimFESolver(Ne, S2, NeumannL=1/2, DirichletR=1/12)
+    #nodes, soln = OneDimFESolver(Ne, S2, DirichletL=0, NeumannR=0)
+    #nodes, soln = OneDimFESolver(Ne, S2, DirichletL=0, DirichletR=1/12)
+    
+    x_analytic = np.linspace(0, 1, 100)
+    
+    plt.plot(x_analytic, psi_analytic2(x_analytic),'-b',label='analytic')
+    plt.plot(nodes, soln, '--x', color='r', label='numeric')
+    plt.grid()
+    plt.xlabel(r'$x$')
+    plt.ylabel(r'$\psi$')
+    plt.legend()
+    plt.title(f'Exercise 3.2 solution: Solve locally over elements\n Ne = {Ne}')
+    plt.show()
+    
+    
+    
+    
+    # sources = [S1, S2, S3]
+    # analytics = [psi_analytic1, psi_analytic2, psi_analytic3]
+    # DirichletL = [0, None, 0.1]
+    # DirichletR = [1/6, 1/12, None]
+    # NeumannL = [None, 1/3, None]
+    # NeumannR = [None,None,-0.2]
+    # latexsourcetitles = ['$S(x) = 1-x$', '$S(x) = (1-x)^2$','$S(x) = \{1$ in the centre, piecewise}']
+    
+    # for i in range(3):
+    #     plt.figure()
+    
+    #     nodes, soln = OneDimFESolver(Ne, sources[i], 
+    #                                  DirichletL=DirichletL[i], DirichletR=DirichletR[i],
+    #                                  NeumannL=NeumannL[i], NeumannR=NeumannR[i])
+        
+    #     x_analytic = np.linspace(0, 1, 100)
+        
+    #     plt.plot(x_analytic, analytics[i](x_analytic),'-b',label='analytic')
+    #     plt.plot(nodes, soln, '--x', color='r', label='numeric')
+    #     plt.grid()
+    #     plt.xlabel(r'$x$')
+    #     plt.ylabel(r'$\psi$')
+    #     plt.legend()
+    #     plt.title(f'Exercise 3.2 solution: Solve locally over elements\n Ne = {Ne}, {latexsourcetitles[i]}')
+    #     plt.show()
+    
+if __name__ == '__main__':
+    #exercise3point1c()
+    exercise3point2(Ne=10)
