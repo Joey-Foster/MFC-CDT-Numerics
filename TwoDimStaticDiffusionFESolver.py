@@ -252,4 +252,5 @@ def TwoDimStaticDiffusionFESolver(Ne, S, alpha, beta):
             Psi_A[n] = Psi_interior[ID[n]]
         
 if __name__ == '__main__':
+    
     TwoDimStaticDiffusionFESolver(10, lambda x:1, 0, 0)
