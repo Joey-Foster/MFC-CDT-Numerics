@@ -101,39 +101,73 @@ def globalShapeFunctionDerivatives(xe):
     return np.linalg.inv(jacobian(xe)) @ localShapeFunctionDerivatives()
     
 def localQuadrature(psi):
-    quadrature = 0 
-    
-    #reference triangle nodes
-    xe = np.array([[0, 0, 1],
-                  [0, 1, 0]])
+    quadrature = 0
     
     #Gauss-quadrature evaluation points (2nd order accurate approximation)
     xis = 1/6* np.array([[1, 1, 4],
                          [1, 4, 1]]) 
     for i in range(3):
-        quadrature += 1/6 * psi(local2globalCoords(xe, xis[:,i]))
+        quadrature += 1/6 * psi(xis[:,i])
     return quadrature
 
 def test_localQuadtrature():
-    psi = lambda x: 1
-    assert np.allclose(localQuadrature(psi), 0.5)
+    test1 = {
+             "psi":lambda x:1,
+             "ans":0.5,
+             "tol":1e-8  
+             }
+    test2 = {
+             "psi":lambda x:6*x[0],
+             "ans":1,
+             "tol":1e-8  
+             }
     
-    psi = lambda x: 6*x[0]
-    assert np.allclose(localQuadrature(psi), 1)
+    for t in [test1, test2]:
+        assert np.allclose(localQuadrature(t["psi"]),t["ans"],atol=t["tol"])
     
     psi = lambda x: x[1]
     assert np.allclose(localQuadrature(psi), 1/6)
     
+    psi = lambda x: np.sin(x[0]+x[1])
+    assert np.allclose(localQuadrature(psi), np.sin(1)-np.cos(1), atol=1e-4)
+    
 def globalQuadrature(xe, phi):
     detJ = np.linalg.det(jacobian(xe))
-    integrand = lambda x: abs(detJ)*phi(x)
+    integrand = lambda xi: abs(detJ)*phi(local2globalCoords(xe, xi))
     return localQuadrature(integrand)    
 
 def test_globalQuadrature():
-    '''
-    I need to compute some integrals over trianlges by hand to check this
-    '''
-    pass
+    #default
+    xe = np.array([[0, 0, 1],
+                  [0, 1, 0]])
+    phi = lambda x: x[0]*x[1]
+    assert np.allclose(globalQuadrature(xe, phi), 1/24)
+    
+    #translated
+    xe = np.array([[1, 1, 2],
+                  [0, 1, 0]])
+    phi = lambda x: 1
+    assert np.allclose(globalQuadrature(xe, phi), 0.5)
+    
+    phi = lambda x: 3*x[0]
+    assert np.allclose(globalQuadrature(xe, phi), 2)
+    
+    #scaled
+    xe = np.array([[0, 0, 2],
+                  [0, 2, 0]])
+        
+    psi = lambda x: np.sin(x[0]+x[1])
+    assert np.allclose(globalQuadrature(xe,psi), np.sin(2)-2*np.cos(2), atol=1e-2)
+    
+    #rotated
+    # xe = np.array([[1, 0, 1],
+    #               [1, 1, 0]])
+    
+    xe = np.array([[0.2, 0, 0.2],
+                  [0, 0.2, 0.2]])
+    
+    phi = lambda x:1
+    assert np.allclose(globalQuadrature(xe, phi), 0.2)
     
 def stiffness(xe):
     output = np.zeros((3,3))
@@ -158,16 +192,14 @@ def force(xe, S):
     '''
     output = np.zeros(3)
     detJ = np.linalg.det(jacobian(xe))
-    
-    refernece_triange_xe = np.array([[0, 0, 1],
-                                     [0, 1, 0]])
+
     
     xis = 1/6* np.array([[1, 1, 4],
                          [1, 4, 1]]) 
     for i in range(3):
         quadrature = 0 
         for j in range(3):
-            quadrature += 1/6 * abs(detJ)*S(local2globalCoords(refernece_triange_xe, xis[:,j])) * localShapeFunctions(xis[:,j])[i]
+            quadrature += 1/6 * abs(detJ)*S(local2globalCoords(xe, xis[:,j])) * localShapeFunctions(xis[:,j])[i]
         output[i] = quadrature
     return output
 
@@ -220,7 +252,8 @@ def TwoDimStaticDiffusionFESolver(Ne, S, alpha, beta):
     N_equations = np.max(ID)+1
     N_elements = IEN.shape[0]
     N_nodes = nodes.shape[0]
-    N_dim = nodes.shape[1]
+    
+    nodes = nodes.T
     
     # Location matrix
     LM = np.zeros_like(IEN.T)
@@ -233,24 +266,39 @@ def TwoDimStaticDiffusionFESolver(Ne, S, alpha, beta):
     F = np.zeros((N_equations,))
     # Loop over elements
     for e in range(N_elements):
-        k_e = stiffness(nodes[IEN[e,:],:])
-        f_e = force(nodes[IEN[e,:],:], S)
+        k_e = stiffness(nodes[:,IEN[e,:]])
+        f_e = force(nodes[:,IEN[e,:]], S)
         for a in range(3):
             A = LM[a, e]
             for b in range(3):
                 B = LM[b, e]
                 if (A >= 0) and (B >= 0):
                     K[A, B] += k_e[a, b]
+                if A==0:
+                    print(f'B={B}, e={e}, {k_e}')
             if (A >= 0):
                 F[A] += f_e[a]
-
+            
+    print(f'K={K[:2,:]}')
+    #print(F)
+    
     # Solve
     Psi_interior = np.linalg.solve(K, F)
     Psi_A = np.zeros(N_nodes)
     for n in range(N_nodes):
         if ID[n] >= 0: # Otherwise, need to update Psi_A with dirichlet info - TODO
             Psi_A[n] = Psi_interior[ID[n]]
+    return nodes, IEN, Psi_A
         
 if __name__ == '__main__':
     
-    TwoDimStaticDiffusionFESolver(10, lambda x:1, 0, 0)
+    nodes, IEN, psi = TwoDimStaticDiffusionFESolver(5, lambda x:1, 0, 0)
+    plt.tripcolor(nodes[0,:], nodes[1,:], psi, triangles=IEN)
+    
+    
+    #x = nodes[0,:]
+    #plt.plot(x, psi, 'xk')
+    # xe = np.array([[0, 0, 2],
+    #               [0, 1, 0]])
+    # print(f'K={stiffness(xe)}, F={force(xe,lambda x:1)}')
+    
