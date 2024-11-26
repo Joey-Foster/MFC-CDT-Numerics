@@ -25,7 +25,7 @@ def exercise3point1c():
     plt.xlabel(r'$x$')
     plt.ylabel(r'$\psi$')
     plt.legend()
-    plt.title('Exercise 3.1(c) solution: Solve globally over nodes\n' r'Ne = 2 and $S(x) = 1-x$')
+    plt.title('Exercise 3.1(c): Solve globally over nodes\n' r'Ne = 2 and $S(x) = 1-x$')
     plt.show()
 
 #%% Exercise 3.2
@@ -33,7 +33,7 @@ def exercise3point1c():
 def OneDimFESolver(Ne, S, DirichletL=None, DirichletR=None, NeumannL=None, NeumannR=None):
     """
     Solves the one-dimensional PDE problem \partial_xx \psi = -S(x) using the 
-    finite element method on an unstructured grid
+    finite element method on an unstructured grid.
 
     Note: Providing exactly two of the 4 possible boundary conditions is necessary 
     for a well-posed PDE problem. Double-Neumann is ill-posed.
@@ -50,8 +50,8 @@ def OneDimFESolver(Ne, S, DirichletL=None, DirichletR=None, NeumannL=None, Neuma
     tuple: A tuple containing the nodes and the solution vector.
     """
     
-    nodes, dx = np.linspace(0, 1, Ne+1, retstep=True)
-    #nodes = np.array([0, *sorted(np.random.rand(Ne-1)), 1])
+    #nodes, dx = np.linspace(0, 1, Ne+1, retstep=True)
+    nodes = np.array([0, *sorted(np.random.rand(Ne-1)), 1])
     
     DirichletCount = 0
     if DirichletL != None:
@@ -81,8 +81,6 @@ def OneDimFESolver(Ne, S, DirichletL=None, DirichletR=None, NeumannL=None, Neuma
             else:
                 LM[1, e] = LM[0, e] + 1
     
-    print(LM)
-    
     def stiffness(element):
         dx = element[-1]-element[0]
         return 1/dx * np.array([[1,-1],[-1,1]])
@@ -97,8 +95,6 @@ def OneDimFESolver(Ne, S, DirichletL=None, DirichletR=None, NeumannL=None, Neuma
         force_vector[0] = dx/2 * scipy.integrate.quad(integrand1, -1,1)[0]
         force_vector[1] = dx/2 * scipy.integrate.quad(integrand2, -1,1)[0]
         return force_vector
-            
-    print(MaxSolvingDimension)
     
     K = np.zeros((MaxSolvingDimension, MaxSolvingDimension))
     F = np.zeros((MaxSolvingDimension,))
@@ -122,10 +118,9 @@ def OneDimFESolver(Ne, S, DirichletL=None, DirichletR=None, NeumannL=None, Neuma
             
     # Modify force vector for Neumann BC
     if NeumannL != None:
-        F[0] += NeumannL
+        F[0] -= NeumannL
     if NeumannR != None:
         F[-1] += NeumannR
-    print(F)
     
     Psi_A = np.zeros_like(nodes)
     Lindex = 0
@@ -139,8 +134,6 @@ def OneDimFESolver(Ne, S, DirichletL=None, DirichletR=None, NeumannL=None, Neuma
         Rindex = -1
 
     Psi_A[Lindex:Rindex] = np.linalg.solve(K, F)
-    
-    print(Psi_A)
 
     return nodes, Psi_A
 
@@ -179,52 +172,39 @@ def psi_analytic3(x):
 
 def exercise3point2(Ne):
     
-    plt.figure()
+    sources = [S1, S2, S3]
+    analytics = [psi_analytic1, psi_analytic2, psi_analytic3]
+    DirichletL = [0, None, 0.1]
+    DirichletR = [1/6, 1/12, None]
+    NeumannL = [None, 1/3, None]
+    NeumannR = [None,None,-0.2]
+    latexsourcetitles = ['$S(x) = 1-x$',
+                         '$S(x) = (1-x)^2$',
+                         '$S(x) = \{1$ in the centre, piecewise}']
+    boundarytitles = ['Dirichlet L & R', 
+                      'Meumann L & Dirichlet R', 
+                      'Dirichlet L & Neumann R']
     
-    nodes, soln = OneDimFESolver(Ne, S2, NeumannL=1/2, DirichletR=1/12)
-    #nodes, soln = OneDimFESolver(Ne, S2, DirichletL=0, NeumannR=0)
-    #nodes, soln = OneDimFESolver(Ne, S2, DirichletL=0, DirichletR=1/12)
+    for i in range(3):
+        plt.figure()
     
-    x_analytic = np.linspace(0, 1, 100)
-    
-    plt.plot(x_analytic, psi_analytic2(x_analytic),'-b',label='analytic')
-    plt.plot(nodes, soln, '--x', color='r', label='numeric')
-    plt.grid()
-    plt.xlabel(r'$x$')
-    plt.ylabel(r'$\psi$')
-    plt.legend()
-    plt.title(f'Exercise 3.2 solution: Solve locally over elements\n Ne = {Ne}')
-    plt.show()
-    
-    
-    
-    
-    # sources = [S1, S2, S3]
-    # analytics = [psi_analytic1, psi_analytic2, psi_analytic3]
-    # DirichletL = [0, None, 0.1]
-    # DirichletR = [1/6, 1/12, None]
-    # NeumannL = [None, 1/3, None]
-    # NeumannR = [None,None,-0.2]
-    # latexsourcetitles = ['$S(x) = 1-x$', '$S(x) = (1-x)^2$','$S(x) = \{1$ in the centre, piecewise}']
-    
-    # for i in range(3):
-    #     plt.figure()
-    
-    #     nodes, soln = OneDimFESolver(Ne, sources[i], 
-    #                                  DirichletL=DirichletL[i], DirichletR=DirichletR[i],
-    #                                  NeumannL=NeumannL[i], NeumannR=NeumannR[i])
+        nodes, soln = OneDimFESolver(Ne, sources[i], 
+                                     DirichletL=DirichletL[i], DirichletR=DirichletR[i],
+                                     NeumannL=NeumannL[i], NeumannR=NeumannR[i])
         
-    #     x_analytic = np.linspace(0, 1, 100)
+        x_analytic = np.linspace(0, 1, 100)
         
-    #     plt.plot(x_analytic, analytics[i](x_analytic),'-b',label='analytic')
-    #     plt.plot(nodes, soln, '--x', color='r', label='numeric')
-    #     plt.grid()
-    #     plt.xlabel(r'$x$')
-    #     plt.ylabel(r'$\psi$')
-    #     plt.legend()
-    #     plt.title(f'Exercise 3.2 solution: Solve locally over elements\n Ne = {Ne}, {latexsourcetitles[i]}')
-    #     plt.show()
+        plt.plot(x_analytic, analytics[i](x_analytic),'-b',label='analytic')
+        plt.plot(nodes, soln, '--x', color='r', label='numeric')
+        plt.grid()
+        plt.xlabel(r'$x$')
+        plt.ylabel(r'$\psi$')
+        plt.legend()
+        plt.title('Exercise 3.2 : '
+                  f'Solve locally over elements\n Ne = {Ne}, ' 
+                  f'{latexsourcetitles[i]}\n with {boundarytitles[i]} BCs')
+        plt.show()
     
 if __name__ == '__main__':
-    #exercise3point1c()
+    exercise3point1c()
     exercise3point2(Ne=10)
