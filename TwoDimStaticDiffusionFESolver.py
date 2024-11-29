@@ -1,7 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import sparse as sp
 import pytest
 
+'''
+solving laplace psi = -S
+'''
 
 def localShapeFunctions(xi):
     return np.array([1-xi[0]-xi[1], xi[0], xi[1]])
@@ -358,7 +362,7 @@ def test_force():
         assert np.allclose(force(t["xe"],t["S"]),
                            t["ans"]), f"element\n {t['xe']} with answer\n {t['ans']} is broken"
 
-def generate_2d_grid(Nx, alpha, beta):
+def generate_2d_grid(Nx):
     '''
     Written by Ian
     '''
@@ -375,14 +379,14 @@ def generate_2d_grid(Nx, alpha, beta):
     for nID in range(len(nodes)):
         if np.allclose(nodes[nID, 0], 0):
             ID[nID] = -1
-            boundaries[nID] = alpha  # Dirichlet BC
+            boundaries[nID] = 0  # Dirichlet BC
         else:
             ID[nID] = n_eq
             n_eq += 1
             if ( (np.allclose(nodes[nID, 1], 0)) or 
                  (np.allclose(nodes[nID, 0], 1)) or 
                  (np.allclose(nodes[nID, 1], 1)) ):
-                boundaries[nID] = beta # Neumann BC
+                boundaries[nID] = 0 # Neumann BC
     IEN = np.zeros((2*Nx**2, 3), dtype=np.int64)
     for i in range(Nx):
         for j in range(Nx):
@@ -394,23 +398,14 @@ def generate_2d_grid(Nx, alpha, beta):
                                     i+(j+1)*Nnodes)
     return nodes, IEN, ID, boundaries
 
-def TwoDimStaticDiffusionFESolver(Ne, S, alpha, beta):
+def TwoDimStaticDiffusionFESolver(Ne, S):
+    '''
+    Solves the Poission equation with source term -S over the unit square using 
+    a finite element method.
+    Zero Dirichlet BC on the left edge. Other three edges are zero-flux Neumann
+    '''
+    nodes, IEN, ID, boundaries = generate_2d_grid(Ne)
     
-    #nodes, IEN, ID, boundaries = generate_2d_grid(Ne, alpha, beta)
-    
-    nodes = np.loadtxt('Numerics-assignment-2/esw_grids/esw_nodes_100k.txt')
-    IEN = np.loadtxt('Numerics-assignment-2/esw_grids/esw_IEN_100k.txt', dtype=np.int64)
-    boundary_nodes = np.loadtxt('Numerics-assignment-2/esw_grids/esw_bdry_100k.txt', 
-                            dtype=np.int64)
-    
-    ID = np.zeros(len(nodes), dtype=np.int64)
-    n_eq = 0
-    for i in range(len(nodes[:, 1])):
-        if i in boundary_nodes:
-            ID[i] = -1
-        else:
-            ID[i] = n_eq
-            n_eq += 1
     N_equations = np.max(ID)+1
     N_elements = IEN.shape[0]
     N_nodes = nodes.shape[0]
@@ -424,7 +419,7 @@ def TwoDimStaticDiffusionFESolver(Ne, S, alpha, beta):
             LM[a,e] = ID[IEN[e,a]]
             
     # Global stiffness matrix and force vector
-    K = np.zeros((N_equations, N_equations))
+    K = sp.lil_matrix((N_equations, N_equations))
     F = np.zeros((N_equations,))
     # Loop over elements
     for e in range(N_elements):
@@ -440,49 +435,58 @@ def TwoDimStaticDiffusionFESolver(Ne, S, alpha, beta):
                 F[A] += f_e[a]
     
     # Solve
-    Psi_interior = np.linalg.solve(K, F)
+    K = sp.csr_matrix(K)
+    Psi_interior = sp.linalg.spsolve(K, F)
     Psi_A = np.zeros(N_nodes)
     for n in range(N_nodes):
         if ID[n] >= 0: # Otherwise, need to update Psi_A with dirichlet info - TODO
             Psi_A[n] = Psi_interior[ID[n]]
     return nodes, IEN, Psi_A
         
+def S1(x):
+    return 1
+
+def S2(x):
+    return 2*x[0]*(x[0]-2)*(3*x[1]**2-3*x[1]+0.5)+x[1]**2*(x[1]-1)**2
+
+def S1d1(x):
+    return 1-x[0]
+
+def S1d2(x):
+    return (1-x[0])**2
+
+def psi_analytic1(x):
+    return x[0]*(1-x[0]/2)
+
+def psi_analytic2(x):
+    return x[0]*(1-x[0]/2)*x[1]**2*(1-x[1])**2
+
+
+def psi_analytic1d1(x):
+ return x[0]/6 * (x[0]**2 - 3*x[0] + 3)
+ 
+def psi_analytic1d2(x):
+    return x[0]/12 * (4 - 6*x[0] + 4*x[0]**2 - x[0]**3)
+
 if __name__ == '__main__':
     
-    # nodes = np.loadtxt('Numerics-assignment-2/esw_grids/esw_nodes_100k.txt')
-    # IEN = np.loadtxt('Numerics-assignment-2/esw_grids/esw_IEN_100k.txt', dtype=np.int64)
-    # boundary_nodes = np.loadtxt('Numerics-assignment-2/esw_grids/esw_bdry_100k.txt', 
-    #                            dtype=np.int64)
+    sources = [S1, S1d1, S1d2, S2]
+    exacts = [psi_analytic1, psi_analytic1d1, psi_analytic1d2, psi_analytic2]
     
-    # plt.triplot(nodes[:,0], nodes[:,1], triangles=IEN)
-    # #plt.plot(nodes[boundary_nodes, 0], nodes[boundary_nodes, 1], 'ro')
-    # plt.axis('equal')
+    for i in range(4):
+        fig, ax = plt.subplots(1,2)
     
-    def S1(x):
-        return 1
+        nodes, IEN, psi = TwoDimStaticDiffusionFESolver(50, sources[i])
+        
+        ax[0].tripcolor(nodes[0,:], nodes[1,:], psi, triangles=IEN)
+        ax[0].set_title('Numeric')
     
-    def S2(x):
-        return 2*x[0]*(x[0]-2)*(3*x[1]**2-3*x[1]+0.5)+x[1]**2*(x[1]-1)**2
-    
-    nodes, IEN, psi = TwoDimStaticDiffusionFESolver(7, S1, 0, 0)
-    plt.tripcolor(nodes[0,:], nodes[1,:], psi, triangles=IEN)
-    plt.axis('equal')
-    
-    
-    def psi_analytic1(x):
-        return x[0]*(1-x[0]/2)
-    
-    def psi_analytic2(x):
-        return x[0]*(1-x[0]/2)*x[1]**2*(1-x[1])**2
-    
-    psi_analytic = psi_analytic1(nodes)
-    
-    plt.figure()
-    plt.tripcolor(nodes[0,:], nodes[1,:], psi_analytic, triangles=IEN)
-    plt.axis('equal')
+        p2 = ax[1].tripcolor(nodes[0,:], nodes[1,:], exacts[i](nodes), triangles=IEN)
+        ax[1].set_title('Analytic')
+        plt.colorbar(p2, ax=ax[1])
+        plt.tight_layout()
     
     plt.show()
-    #x = nodes[0,:]
-    #plt.plot(x, psi, 'xk')
+
 
     
