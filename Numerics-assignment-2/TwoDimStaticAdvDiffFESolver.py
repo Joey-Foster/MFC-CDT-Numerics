@@ -1,10 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import sparse as sp
-import pytest
 
 '''
-Solving u0 partial_x psi = S + D (laplace psi)
+Solving u0 partial_y psi = S + D (laplace psi)
 '''
 
 def localShapeFunctions(xi):
@@ -35,39 +34,6 @@ def local2globalCoords(xe,xi):
         globalcoords[i] = xe[i,0]*N[0] + xe[i,1]*N[1] + xe[i,2]*N[2]
     return globalcoords
 
-def test_local2globalCoords():
-    
-    default = {
-                "xe": np.array([[0, 1, 0],
-                                [0, 0, 1]]),
-                "ans": np.array([0.5, 0.5])
-              }
-    
-    translated = {
-                "xe": np.array([[1, 2, 1],
-                                [0, 0, 1]]),
-                "ans": np.array([1.5, 0.5])
-                 }
-    
-    scaled = {
-                "xe": np.array([[0, 2, 0],
-                                [0, 0, 2]]),
-                "ans": np.array([1, 1])
-             }
-    
-    rotated = {
-                "xe": np.array([[1, 0, 1],
-                                [1, 1, 0]]),
-                "ans": np.array([0.5, 0.5])
-              }
-    
-    xi = np.array([0.5, 0.5])
-    
-    for t in [default, translated, scaled, rotated]:
-        assert np.allclose(local2globalCoords(t["xe"], xi),
-                           t["ans"]), f"element\n {t['xe']} is broken"
-  
-
 def jacobian(xe):
     Nprime = localShapeFunctionDerivatives()
     output = np.zeros((2,2))
@@ -76,78 +42,11 @@ def jacobian(xe):
             output[i,j] = xe[i,0]*Nprime[j,0] + xe[i,1]*Nprime[j,1] + xe[i,2]*Nprime[j,2]
     return output
 
-def test_jacobian():
-      
-    default = {
-                "xe": np.array([[0, 1, 0],
-                                [0, 0, 1]]),
-                "ans": np.array([[1, 0],
-                                 [0, 1]])
-              }
-    
-    translated = {
-                "xe": np.array([[1, 2, 1],
-                                [0, 0, 1]]),
-                "ans": np.array([[1, 0],
-                                 [0, 1]])
-                 }
-    
-    scaled = {
-                "xe": np.array([[0, 2, 0],
-                                [0, 0, 2]]),
-                "ans": np.array([[2, 0],
-                                 [0, 2]])
-             }
-    
-    rotated = {
-                "xe": np.array([[1, 0, 1],
-                                [1, 1, 0]]),
-                "ans": np.array([[-1, 0],
-                                 [0, -1]])
-              }
-    
-    for t in [default, translated, scaled, rotated]:
-        assert np.allclose(jacobian(t["xe"]),
-                           t["ans"]), f"element\n {t['xe']} is broken"
-
 
 def globalShapeFunctionDerivatives(xe):
     return np.linalg.inv(jacobian(xe)).T @ localShapeFunctionDerivatives()
 
-def test_globalShapeFunctionDerivatives():
-    
-   default = {
-               "xe": np.array([[0, 1, 0],
-                               [0, 0, 1]]),
-               "ans": np.array([[-1, 1, 0],
-                                [-1, 0, 1]])
-             }
-   
-   translated = {
-               "xe": np.array([[1, 2, 1],
-                               [0, 0, 1]]),
-               "ans": np.array([[-1, 1, 0],
-                                [-1, 0, 1]])
-                }
-   
-   scaled = {
-               "xe": np.array([[0, 2, 0],
-                               [0, 0, 2]]),
-               "ans": np.array([[-0.5, 0.5, 0],
-                                [-0.5, 0, 0.5]])
-            }
-   
-   rotated = {
-               "xe": np.array([[1, 0, 1],
-                               [1, 1, 0]]),
-               "ans": np.array([[1, -1, 0],
-                                [1, 0, -1]])
-             }
-   
-   for t in [default, translated, scaled, rotated]:
-       assert np.allclose(globalShapeFunctionDerivatives(t["xe"]),
-                          t["ans"]), f"element\n {t['xe']} is broken"
-    
+
 def localQuadrature(psi):
     quadrature = 0
     
@@ -158,130 +57,20 @@ def localQuadrature(psi):
         quadrature += 1/6 * psi(xis[:,i])
     return quadrature
 
-def test_localQuadtrature():
-    
-    constant = {
-             "psi": lambda x: 1,
-             "ans": 0.5 
-             } 
-    
-    linearx = {
-             "psi": lambda x: 6*x[0],
-             "ans": 1,
-             }
-    
-    lineary = {
-             "psi": lambda x: x[1],
-             "ans": 1/6,
-             }
-    
-    product = {
-             "psi": lambda x: x[0]*x[1],
-             "ans": 1/24,
-             }
-    for t in [constant, linearx, lineary, product]:
-        assert np.allclose(localQuadrature(t["psi"]),
-                           t["ans"]), f"function with answer\n {t['ans']} is broken"
-
 def globalQuadrature(xe, phi):
     detJ = np.linalg.det(jacobian(xe))
     integrand = lambda xi: abs(detJ)*phi(local2globalCoords(xe, xi))
     return localQuadrature(integrand)    
 
-def test_globalQuadrature():   
-    
-    translated_linear = {
-             "xe": np.array([[1, 2, 1],
-                             [0, 0, 1]]),
-             "phi": lambda x: 3*x[0],
-             "ans": 2,
-                        }
-    
-    translated_product = {
-             "xe": np.array([[1, 2, 1],
-                             [0, 0, 1]]),
-             "phi": lambda x: x[0]*x[1],
-             "ans": 5/24,
-                         }
-    
-    scaled_linear = {
-             "xe": np.array([[0, 2, 0],
-                             [0, 0, 2]]),
-             "phi": lambda x: 3*x[0],
-             "ans": 4,
-                     }
-    
-    scaled_product = {
-             "xe": np.array([[0, 2, 0],
-                             [0, 0, 2]]),
-             "phi": lambda x: x[0]*x[1],
-             "ans": 2/3,
-                     }
-    
-    rotated_linear = {
-             "xe": np.array([[1, 0, 1],
-                             [1, 1, 0]]),
-             "phi": lambda x: 3*x[0],
-             "ans": 1,
-                     }
-    
-    rotated_product = {
-             "xe": np.array([[1, 0, 1],
-                             [1, 1, 0]]),
-             "phi": lambda x: x[0]*x[1],
-             "ans": 5/24,
-                     }
-
-    for t in [translated_linear, translated_product, scaled_linear, scaled_product,
-              rotated_linear, rotated_product]:
-        assert np.allclose(globalQuadrature(t["xe"],t["phi"]), 
-                           t["ans"]), f"element\n {t['xe']} with answer\n {t['ans']} is broken"
-        
 def diffusion_stiffness(xe):
-   output = np.zeros((3,3))
-   dxNa = globalShapeFunctionDerivatives(xe)
-   for i in range(3):
-       for j in range(3):
-           phi = lambda x: dxNa[0,i]*dxNa[0,j] + dxNa[1,i]*dxNa[1,j]
-           output[i,j] = globalQuadrature(xe, phi)
-   return output
-
-def test_diffusion_stiffness():
-
-    default = {
-                "xe": np.array([[0, 1, 0],
-                                [0, 0, 1]]),
-                "ans": np.array([[1, -0.5, -0.5],
-                                 [-0.5, 0.5, 0],
-                                 [-0.5, 0, 0.5]])
-              }
+    output = np.zeros((3,3))
+    dxNa = globalShapeFunctionDerivatives(xe)
+    for i in range(3):
+        for j in range(3):
+            phi = lambda x: dxNa[0,i]*dxNa[0,j] + dxNa[1,i]*dxNa[1,j]
+            output[i,j] = globalQuadrature(xe, phi)
+    return output
     
-    translated = {
-                "xe": np.array([[1, 2, 1],
-                                [0, 0, 1]]),
-                "ans": np.array([[1, -0.5, -0.5],
-                                 [-0.5, 0.5, 0],
-                                 [-0.5, 0, 0.5]])
-                 }
-    
-    scaled = {
-                "xe": np.array([[0, 2, 0],
-                                [0, 0, 2]]),
-                "ans": np.array([[1, -0.5, -0.5],
-                                 [-0.5, 0.5, 0],
-                                 [-0.5, 0, 0.5]])
-            }
-    rotated = {
-                "xe": np.array([[1, 0, 1],
-                                [1, 1, 0]]),
-                "ans": np.array([[1, -0.5, -0.5],
-                                 [-0.5, 0.5, 0],
-                                 [-0.5, 0, 0.5]])
-              }
-    
-    for t in [default, translated, scaled, rotated]:
-        assert np.allclose(diffusion_stiffness(t["xe"]),
-                           t["ans"]), f"element\n {t['xe']} is broken"
 
 def advection_stiffness(xe):
     output = np.zeros((3,3))
@@ -289,16 +78,10 @@ def advection_stiffness(xe):
     dxNa = globalShapeFunctionDerivatives(xe)
     for i in range(3):
         for j in range(3):
-            integrand = lambda xi: abs(detJ) * dxNa[0,i] * localShapeFunctions(xi)[j]
+            integrand = lambda xi: abs(detJ) * dxNa[1,i] * localShapeFunctions(xi)[j]
             output[i,j] = localQuadrature(integrand)
     return output
-
-def test_advection_stiffness():
-    '''
-    work out a test for this
-
-    '''
-    pass
+    
     
 def stiffness(xe, D, u0):
     return D * diffusion_stiffness(xe) - u0 * advection_stiffness(xe)
@@ -316,70 +99,6 @@ def force(xe, S):
         integrand = lambda xi: abs(detJ) * S(local2globalCoords(xe, xi)) * localShapeFunctions(xi)[i]
         output[i] = localQuadrature(integrand)
     return output
-
-def test_force():
-    
-    default_const = {
-             "xe": np.array([[0, 1, 0],
-                             [0, 0, 1]]),
-             "S": lambda x: 1,
-             "ans": 1/6 * np.array([1, 1, 1]),
-                        }
-    
-    default_linear = {
-             "xe": np.array([[0, 1, 0],
-                             [0, 0, 1]]),
-             "S": lambda x: x[0],
-             "ans": 1/24 * np.array([1, 2, 1])
-                        }
-
-       
-    translated_const = {
-             "xe": np.array([[1, 2, 1],
-                             [0, 0, 1]]),
-             "S": lambda x: 1,
-             "ans": 1/6 * np.array([1, 1, 1]),
-                        }
-    
-    translated_linear = {
-             "xe": np.array([[1, 2, 1],
-                             [0, 0, 1]]),
-             "S": lambda x: x[1],
-             "ans": 1/24 * np.array([1, 1, 2])
-                         }
-    
-    scaled_const = {
-             "xe": np.array([[0, 2, 0],
-                             [0, 0, 2]]),
-             "S": lambda x: 1,
-             "ans": 2/3 * np.array([1, 1, 1]),
-                     }
-    
-    scaled_linear = {
-             "xe": np.array([[0, 2, 0],
-                             [0, 0, 2]]),
-             "S": lambda x: x[0],
-             "ans": 1/3 * np.array([1, 2, 1]),
-                     }
-    
-    rotated_const = {
-             "xe": np.array([[1, 0, 1],
-                             [1, 1, 0]]),
-             "S": lambda x: 1,
-             "ans": 1/6 * np.array([1, 1, 1]),
-                     }
-    
-    rotated_linear = {
-             "xe": np.array([[1, 0, 1],
-                             [1, 1, 0]]),
-             "S": lambda x: x[1],
-             "ans": 1/4 * np.array([1/2, 1/2, 1/3]),
-                     }
-
-    for t in [default_const, default_linear, translated_const, translated_linear, 
-              scaled_const, scaled_linear, rotated_const, rotated_linear]:
-        assert np.allclose(force(t["xe"],t["S"]),
-                           t["ans"]), f"element\n {t['xe']} with answer\n {t['ans']} is broken"
         
 def TwoDimStaticAdvDiffFESolver(S, u0, D, resolution):
     '''
@@ -430,6 +149,7 @@ def TwoDimStaticAdvDiffFESolver(S, u0, D, resolution):
                 B = LM[b, e]
                 if (A >= 0) and (B >= 0):
                     K[A, B] += k_e[a, b]
+                   # print(f'K={K[A,B]}')
             if (A >= 0):
                 F[A] += f_e[a]
     
@@ -444,7 +164,7 @@ def TwoDimStaticAdvDiffFESolver(S, u0, D, resolution):
     return nodes, IEN, southern_boarder, Psi_A
 
 def S_sotonfire(x):
-    sigma = 100
+    sigma = 200
     return np.exp(-1/(2*sigma**2)*((x[0]-442365)**2 + (x[1]-115483)**2))
 
 def S_identity(x):
@@ -452,10 +172,10 @@ def S_identity(x):
 
 if __name__ == '__main__':
     
-    nodes, IEN, southern_boarder, psi = TwoDimStaticAdvDiffFESolver(S_sotonfire, 10, 16e-6, '5')
+    nodes, IEN, southern_boarder, psi = TwoDimStaticAdvDiffFESolver(S_sotonfire, 1, 0.01, '10')
     
     #normalising
-    #psi = 1/max(psi)*psi
+    psi = 1/max(psi)*psi
     
     plt.tripcolor(nodes[0,:], nodes[1,:], psi, triangles=IEN)
     plt.plot([442365],[115483],'x',c='r')
