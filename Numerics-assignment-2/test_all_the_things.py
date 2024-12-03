@@ -219,32 +219,32 @@ def test_advection_stiffness():
     default = {
                 "xe": np.array([[0, 1, 0],
                                 [0, 0, 1]]),
-                "ans": 1/6 * np.array([[-1, -1, -1],
-                                       [ 0,  0,  0],
-                                       [ 1,  1,  1]])
+                "ans": 1/6 * np.array([[-1,  0,  1],
+                                       [-1,  0,  1],
+                                       [-1,  0,  1]])
               }
     
     translated = {
                 "xe": np.array([[1, 2, 1],
                                 [0, 0, 1]]),
-                "ans": 1/6 * np.array([[-1, -1, -1],
-                                       [ 0,  0,  0],
-                                       [ 1,  1,  1]])
+                "ans": 1/6 * np.array([[-1,  0,  1],
+                                       [-1,  0,  1],
+                                       [-1,  0,  1]])
                  }
     
     scaled = {
                 "xe": np.array([[0, 2, 0],
                                 [0, 0, 2]]),
-                "ans": 1/3 * np.array([[-1, -1, -1],
-                                       [ 0,  0,  0],
-                                       [ 1,  1,  1]])
+                "ans": 1/3 * np.array([[-1,  0,  1],
+                                       [-1,  0,  1],
+                                       [-1,  0,  1]])
             }
     rotated = {
                 "xe": np.array([[1, 0, 1],
                                 [1, 1, 0]]),
-                "ans": 1/6 * np.array([[ 1,  1,  1],
-                                       [ 0,  0,  0],
-                                       [-1, -1, -1]])
+                "ans": 1/6 * np.array([[1,  0, -1],
+                                       [1,  0, -1],
+                                       [1,  0, -1]])
               }
     
     for t in [default, translated, scaled, rotated]:
