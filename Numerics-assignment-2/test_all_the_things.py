@@ -251,6 +251,38 @@ def test_advection_stiffness():
         assert np.allclose(advection_stiffness(t["xe"]),
                            t["ans"]), f"element\n {t['xe']} is broken"
         
+def test_global2localcoords():
+    
+    default = {
+                "xe": np.array([[0, 1, 0],
+                                [0, 0, 1]]),
+                "x": np.array([0.5, 0.5])
+              }
+    
+    translated = {
+                "xe": np.array([[1, 2, 1],
+                                [0, 0, 1]]),
+                "x": np.array([1.5, 0.5])
+                 }
+    
+    scaled = {
+                "xe": np.array([[0, 2, 0],
+                                [0, 0, 2]]),
+                "x": np.array([1, 1])
+             }
+    
+    rotated = {
+                "xe": np.array([[1, 0, 1],
+                                [1, 1, 0]]),
+                "x": np.array([0.5, 0.5])
+              }
+    
+    ans = np.array([0.5, 0.5])
+    
+    for t in [default, translated, scaled, rotated]:
+        assert np.allclose(global2localcoords(t["xe"], t["x"]), 
+                           ans), f"element\n {t['xe']} is broken"
+        
 def test_force():
     
     default_const = {
@@ -314,3 +346,4 @@ def test_force():
               scaled_const, scaled_linear, rotated_const, rotated_linear]:
         assert np.allclose(force(t["xe"],t["S"]),
                            t["ans"]), f"element\n {t['xe']} with answer\n {t['ans']} is broken"
+
