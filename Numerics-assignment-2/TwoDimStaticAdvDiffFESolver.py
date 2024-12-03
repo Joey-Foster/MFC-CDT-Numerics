@@ -1,14 +1,12 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy import sparse as sp
 
 '''
-Solving u0 partial_y psi = S + D (laplace psi)
+Solving u0 ∂Ψ/∂y = S + D ΔΨ
 '''
 
 def localShapeFunctions(xi):
     return np.array([1-xi[0]-xi[1], xi[0], xi[1]])
-
 
 def localShapeFunctionDerivatives():
     '''
@@ -42,10 +40,8 @@ def jacobian(xe):
             output[i,j] = xe[i,0]*Nprime[j,0] + xe[i,1]*Nprime[j,1] + xe[i,2]*Nprime[j,2]
     return output
 
-
 def globalShapeFunctionDerivatives(xe):
     return np.linalg.inv(jacobian(xe)).T @ localShapeFunctionDerivatives()
-
 
 def localQuadrature(psi):
     quadrature = 0
@@ -71,33 +67,33 @@ def diffusion_stiffness(xe):
             output[i,j] = globalQuadrature(xe, phi)
     return output
     
-
 def advection_stiffness(xe):
     output = np.zeros((3,3))
     detJ = np.linalg.det(jacobian(xe))
     dxNa = globalShapeFunctionDerivatives(xe)
     for i in range(3):
         for j in range(3):
-            integrand = lambda xi: abs(detJ) * dxNa[1,i] * localShapeFunctions(xi)[j]
+            integrand = lambda xi: detJ * localShapeFunctions(xi)[i] *  dxNa[1,j]
             output[i,j] = localQuadrature(integrand)
     return output
     
-    
 def stiffness(xe, D, u0):
     return D * diffusion_stiffness(xe) - u0 * advection_stiffness(xe)
-    
-def force(xe, S):
-    '''
-    Cannot just pass globalQuadrature() as expression for globalShapeFunctions()
-    is required but not practically obtainable
 
-    '''
+def global2localCoords(xe, x):
+    diffs = np.array([[xe[0,1]-xe[0,0], xe[0,2]-xe[0,0]],
+                      [xe[1,1]-xe[1,0], xe[1,2]-xe[1,0]]])
+    localcoords = np.linalg.solve(diffs, x-np.array([xe[0,0],xe[1,0]]))
+    return localcoords
+
+def globalShapeFunctions(xe, x):
+    return localShapeFunctions(global2localCoords(xe, x))
+
+def force(xe, S):
     output = np.zeros(3)
-    detJ = np.linalg.det(jacobian(xe))
-    
     for i in range(3):
-        integrand = lambda xi: abs(detJ) * S(local2globalCoords(xe, xi)) * localShapeFunctions(xi)[i]
-        output[i] = localQuadrature(integrand)
+        integrand = lambda x: S(x) * globalShapeFunctions(xe, x)[i]
+        output[i] = globalQuadrature(xe, integrand)
     return output
         
 def TwoDimStaticAdvDiffFESolver(S, u0, D, resolution):
@@ -107,8 +103,6 @@ def TwoDimStaticAdvDiffFESolver(S, u0, D, resolution):
     D (float): diffusion coefficient [m^2s^-1]
     resolution (string): one of [1_25, 2_5, 5, 10, 20, 40]
     '''
-    
-    
     nodes = np.loadtxt(f'las_grids/las_nodes_{resolution}k.txt')
     IEN = np.loadtxt(f'las_grids/las_IEN_{resolution}k.txt', dtype=np.int64)
     boundary_nodes = np.loadtxt(f'las_grids/las_bdry_{resolution}k.txt', dtype=np.int64)
@@ -149,41 +143,28 @@ def TwoDimStaticAdvDiffFESolver(S, u0, D, resolution):
                 B = LM[b, e]
                 if (A >= 0) and (B >= 0):
                     K[A, B] += k_e[a, b]
-                   # print(f'K={K[A,B]}')
             if (A >= 0):
                 F[A] += f_e[a]
     
-
+    
     # Solve
     K = sp.csr_matrix(K)
     Psi_interior = sp.linalg.spsolve(K, F)
     Psi_A = np.zeros(N_nodes)
     for n in range(N_nodes):
-        if ID[n] >= 0: # Otherwise, Psi_A is dirichlet zero
+        if ID[n] >= 0: # Otherwise, Psi_A is homogeneous dirichlet
             Psi_A[n] = Psi_interior[ID[n]]
+            
+    # normK = sp.linalg.norm(K)
+    # norminvK= sp.linalg.norm(sp.linalg.inv(K))
+    # print(normK*norminvK)
+    
     return nodes, IEN, southern_boarder, Psi_A
 
 def S_sotonfire(x):
-    sigma = 200
+    sigma = 1000
     return np.exp(-1/(2*sigma**2)*((x[0]-442365)**2 + (x[1]-115483)**2))
 
 def S_identity(x):
     return 1
-
-if __name__ == '__main__':
-    
-    nodes, IEN, southern_boarder, psi = TwoDimStaticAdvDiffFESolver(S_sotonfire, 1, 0.01, '10')
-    
-    #normalising
-    psi = 1/max(psi)*psi
-    
-    plt.tripcolor(nodes[0,:], nodes[1,:], psi, triangles=IEN)
-    plt.plot([442365],[115483],'x',c='r')
-    plt.plot([473993], [171625],'x',c='pink')
-    plt.axis('equal')
-    plt.colorbar()
- 
-    #plt.plot(nodes[0, southern_boarder], nodes[1,southern_boarder], 'x', c='orange')
-       
-    plt.show()
     
