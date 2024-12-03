@@ -47,33 +47,37 @@ def nearestElement2Coords(nodes, IEN, coords):
         return candidate_triangle
     
 def pollutionExtractor(psi, nodes, IEN, coords):
+    #find nodes of the triangle that contains reading
     elementnodes = nearestElement2Coords(nodes, IEN, coords)
+    #get the coords of the nodes of that triangle
     xe = nodes[:,elementnodes]
     
+    #find the local coords of reading in that triangle
     xi = global2localCoords(xe, coords)
-    N = localShapeFunctions(xi)
     
-    pollution = psi[elementnodes[0]]*N[0] + psi[elementnodes[1]]*N[1] + psi[elementnodes[2]]*N[2]
+    N = localShapeFunctions(xi)
+    #use basis function representation to determine the value of psi over reading
+    pollution = np.dot(psi[elementnodes], N)
     return pollution
 
 #%%
+if __name__ == '__main__':
 
-nodes, IEN, southern_boarder, psi = TwoDimStaticAdvDiffFESolver(S_sotonfire, 0.001, 1, '2_5')
-
-
-#normalising
-psi = 1/max(psi)*psi
-
-plt.tripcolor(nodes[0,:], nodes[1,:], psi, triangles=IEN)
-plt.plot([442365],[115483],'x',c='r')
-plt.plot([473993], [171625],'x',c='pink')
-plt.axis('equal')
-plt.colorbar()
-
-plt.plot(nodes[0, southern_boarder], nodes[1,southern_boarder], '.', c='orange')
-
-plt.show()
-
-reading = np.array([473993, 171625])
-ans = pollutionExtractor(psi, nodes, IEN, reading)   
-print(ans)
+    nodes, IEN, southern_boarder, psi = TwoDimStaticAdvDiffFESolver(S_sotonfire, 10, 10000, '5')
+    
+    #normalising
+    psi = 1/max(psi)*psi
+    
+    plt.tripcolor(nodes[0,:], nodes[1,:], psi, triangles=IEN)
+    plt.plot([442365],[115483],'x',c='r')
+    plt.plot([473993], [171625],'x',c='pink')
+    plt.axis('equal')
+    plt.colorbar()
+    
+    plt.plot(nodes[0, southern_boarder], nodes[1,southern_boarder], '.', c='orange')
+    
+    plt.show()
+    
+    reading = np.array([473993, 171625])
+    ans = pollutionExtractor(psi, nodes, IEN, reading)   
+    print(ans)
