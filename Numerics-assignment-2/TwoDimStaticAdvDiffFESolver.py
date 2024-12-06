@@ -2,7 +2,7 @@ import numpy as np
 from scipy import sparse as sp
 
 '''
-Solving u0 ∂Ψ/∂y = S + D ΔΨ
+Solving u .∇Ψ = S + D ΔΨ
 '''
 
 def localShapeFunctions(xi):
@@ -67,18 +67,19 @@ def diffusion_stiffness(xe):
             output[i,j] = globalQuadrature(xe, phi)
     return output
     
-def advection_stiffness(xe):
+def advection_stiffness(xe, u):
     output = np.zeros((3,3))
     detJ = np.linalg.det(jacobian(xe))
     dxNa = globalShapeFunctionDerivatives(xe)
     for i in range(3):
         for j in range(3):
-            integrand = lambda xi: detJ * localShapeFunctions(xi)[i] *  dxNa[1,j]
+            integrand = lambda xi: detJ * localShapeFunctions(xi)[i] * (u[0]*dxNa[0,j]
+                                                                        + u[1]*dxNa[1,j])
             output[i,j] = localQuadrature(integrand)
     return output
     
-def stiffness(xe, D, u0):
-    return D * diffusion_stiffness(xe) - u0 * advection_stiffness(xe)
+def stiffness(xe, D, u):
+    return D * diffusion_stiffness(xe) - advection_stiffness(xe, u)
 
 def global2localCoords(xe, x):
     diffs = np.array([[xe[0,1]-xe[0,0], xe[0,2]-xe[0,0]],
@@ -96,10 +97,10 @@ def force(xe, S):
         output[i] = globalQuadrature(xe, integrand)
     return output
         
-def TwoDimStaticAdvDiffFESolver(S, u0, D, resolution):
+def TwoDimStaticAdvDiffFESolver(S, u, D, resolution):
     '''
     S (funciton): source term
-    u0 (float): northward wind velocity [ms^-1]
+    u (float): wind velocity [ms^-1]
     D (float): diffusion coefficient [m^2s^-1]
     resolution (string): one of [1_25, 2_5, 5, 10, 20, 40]
     '''
@@ -135,7 +136,7 @@ def TwoDimStaticAdvDiffFESolver(S, u0, D, resolution):
     F = np.zeros((N_equations,))
     # Loop over elements
     for e in range(N_elements):
-        k_e = stiffness(nodes[:,IEN[e,:]], D, u0)
+        k_e = stiffness(nodes[:,IEN[e,:]], D, u)
         f_e = force(nodes[:,IEN[e,:]], S)
         for a in range(3):
             A = LM[a, e]
@@ -155,9 +156,9 @@ def TwoDimStaticAdvDiffFESolver(S, u0, D, resolution):
         if ID[n] >= 0: # Otherwise, Psi_A is homogeneous dirichlet
             Psi_A[n] = Psi_interior[ID[n]]
             
-    # normK = sp.linalg.norm(K)
-    # norminvK= sp.linalg.norm(sp.linalg.inv(K))
-    # print(normK*norminvK)
+    
+    #normalising
+    Psi_A = 1/max(Psi_A)*Psi_A
     
     return nodes, IEN, southern_boarder, Psi_A
 
