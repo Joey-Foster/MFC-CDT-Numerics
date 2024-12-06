@@ -1,5 +1,6 @@
 import numpy as np
 from TwoDimStaticAdvDiffFESolver import *
+from TwoDimTimeEvolvedAdvDiffFESolver import mass
 import pytest
 
 def test_local2globalCoords():
@@ -370,3 +371,39 @@ def test_force():
         assert np.allclose(force(t["xe"],t["S"]),
                            t["ans"]), f"element\n {t['xe']} with answer\n {t['ans']} is broken"
 
+def test_mass():
+
+    default = {
+                "xe": np.array([[0, 1, 0],
+                                [0, 0, 1]]),
+                "ans": 1/24 * np.array([[2, 1, 1],
+                                        [1, 2, 1],
+                                        [1, 1, 2]])
+              }
+    
+    translated = {
+                "xe": np.array([[1, 2, 1],
+                                [0, 0, 1]]),
+                "ans": 1/24 * np.array([[2, 1, 1],
+                                        [1, 2, 1],
+                                        [1, 1, 2]])
+                 }
+    
+    scaled = {
+                "xe": np.array([[0, 2, 0],
+                                [0, 0, 2]]),
+                "ans": 1/6 * np.array([[2, 1, 1],
+                                        [1, 2, 1],
+                                        [1, 1, 2]])
+            }
+    rotated = {
+                "xe": np.array([[1, 0, 1],
+                                [1, 1, 0]]),
+                "ans": 1/24 * np.array([[2, 1, 1],
+                                        [1, 2, 1],
+                                        [1, 1, 2]])
+              }
+    
+    for t in [default, translated, scaled, rotated]:
+        assert np.allclose(mass(t["xe"]),
+                           t["ans"]), f"element\n {t['xe']} is broken"
