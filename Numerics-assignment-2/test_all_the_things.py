@@ -216,17 +216,37 @@ def test_diffusion_stiffness():
 
 def test_advection_stiffness():
     
-    default = {
-                "xe": np.array([[0, 1, 0],
-                                [0, 0, 1]]),
-                "ans": 1/6 * np.array([[-1,  0,  1],
-                                       [-1,  0,  1],
-                                       [-1,  0,  1]])
-              }
+    default_east = {
+                    "xe": np.array([[0, 1, 0],
+                                    [0, 0, 1]]),
+                    "u": np.array([1, 0]),
+                    "ans": 1/6 * np.array([[-1,  1,  0],
+                                           [-1,  1,  0],
+                                           [-1,  1,  0]])
+                   }
+    
+    default_north = {
+                    "xe": np.array([[0, 1, 0],
+                                    [0, 0, 1]]),
+                    "u": np.array([0, 1]),
+                    "ans": 1/6 * np.array([[-1,  0,  1],
+                                           [-1,  0,  1],
+                                           [-1,  0,  1]])
+                   }
+    
+    default_north_east = {
+                    "xe": np.array([[0, 1, 0],
+                                    [0, 0, 1]]),
+                    "u": np.array([1, 1]),
+                    "ans": 1/6 * np.array([[-2,  1,  1],
+                                           [-2,  1,  1],
+                                           [-2,  1,  1]])
+                        }
     
     translated = {
                 "xe": np.array([[1, 2, 1],
                                 [0, 0, 1]]),
+                "u": np.array([0, 1]),
                 "ans": 1/6 * np.array([[-1,  0,  1],
                                        [-1,  0,  1],
                                        [-1,  0,  1]])
@@ -235,6 +255,7 @@ def test_advection_stiffness():
     scaled = {
                 "xe": np.array([[0, 2, 0],
                                 [0, 0, 2]]),
+                "u": np.array([0, 1]),
                 "ans": 1/3 * np.array([[-1,  0,  1],
                                        [-1,  0,  1],
                                        [-1,  0,  1]])
@@ -242,14 +263,16 @@ def test_advection_stiffness():
     rotated = {
                 "xe": np.array([[1, 0, 1],
                                 [1, 1, 0]]),
+                "u": np.array([0, 1]),
                 "ans": 1/6 * np.array([[1,  0, -1],
                                        [1,  0, -1],
                                        [1,  0, -1]])
               }
     
-    for t in [default, translated, scaled, rotated]:
-        assert np.allclose(advection_stiffness(t["xe"]),
-                           t["ans"]), f"element\n {t['xe']} is broken"
+    for t in [default_east, default_north, default_north_east, translated, 
+              scaled, rotated]:
+        assert np.allclose(advection_stiffness(t["xe"],t["u"]),
+                           t["ans"]), f"element\n {t['xe']} with velocity\n {t['u']} is broken"
         
 def test_global2localcoords():
     
@@ -280,7 +303,7 @@ def test_global2localcoords():
     ans = np.array([0.5, 0.5])
     
     for t in [default, translated, scaled, rotated]:
-        assert np.allclose(global2localcoords(t["xe"], t["x"]), 
+        assert np.allclose(global2localCoords(t["xe"], t["x"]), 
                            ans), f"element\n {t['xe']} is broken"
         
 def test_force():
