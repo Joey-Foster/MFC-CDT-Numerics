@@ -55,7 +55,7 @@ def localQuadrature(psi):
 
 def globalQuadrature(xe, phi):
     detJ = np.linalg.det(jacobian(xe))
-    integrand = lambda xi: abs(detJ)*phi(local2globalCoords(xe, xi))
+    integrand = lambda xi: detJ*phi(local2globalCoords(xe, xi))
     return localQuadrature(integrand)    
 
 def diffusion_stiffness(xe):
@@ -73,7 +73,7 @@ def advection_stiffness(xe, u):
     dxNa = globalShapeFunctionDerivatives(xe)
     for i in range(3):
         for j in range(3):
-            integrand = lambda xi: detJ * localShapeFunctions(xi)[i] * (u[0]*dxNa[0,j]
+            integrand = lambda xi: abs(detJ) * localShapeFunctions(xi)[i] * (u[0]*dxNa[0,j]
                                                                         + u[1]*dxNa[1,j])
             output[i,j] = localQuadrature(integrand)
     return output
@@ -100,7 +100,7 @@ def force(xe, S):
 def TwoDimStaticAdvDiffFESolver(S, u, D, resolution):
     '''
     S (funciton): source term
-    u (float): wind velocity [ms^-1]
+    u (array): wind velocity [ms^-1]
     D (float): diffusion coefficient [m^2s^-1]
     resolution (string): one of [1_25, 2_5, 5, 10, 20, 40]
     '''
