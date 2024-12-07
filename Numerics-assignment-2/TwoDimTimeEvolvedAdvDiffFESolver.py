@@ -1,8 +1,7 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy import sparse as sp
 from scipy import integrate
-from TwoDimStaticAdvDiffFESolver import globalShapeFunctions, globalQuadrature, stiffness, force, S_sotonfire
+from TwoDimStaticAdvDiffFESolver import globalShapeFunctions, globalQuadrature, stiffness, force
 
 def mass(xe):
     output = np.zeros((3,3))
@@ -12,12 +11,13 @@ def mass(xe):
             output[i,j] = globalQuadrature(xe, phi)
     return output
 
-def TwoDimTimeEvolvedAdvDiffFESolver(S, u, D, resolution):
+def TwoDimTimeEvolvedAdvDiffFESolver(S, u, D, resolution, t_max):
     '''
     S (funciton): source term
     u (array): wind velocity [ms^-1]
     D (float): diffusion coefficient [m^2s^-1]
     resolution (string): one of [1_25, 2_5, 5, 10, 20, 40]
+    t_nax (float): max runtime of the simulation [s]
     '''
     nodes = np.loadtxt(f'las_grids/las_nodes_{resolution}k.txt')
     IEN = np.loadtxt(f'las_grids/las_IEN_{resolution}k.txt', dtype=np.int64)
@@ -67,8 +67,8 @@ def TwoDimTimeEvolvedAdvDiffFESolver(S, u, D, resolution):
     
     # Solve
     K = sp.csr_matrix(K)
+    M = sp.csr_matrix(M)
     M_inv = sp.linalg.inv(M)
-    M_inv = sp.csr_matrix(M_inv)
     
     Psi_A = np.zeros(N_nodes)
     def rhs(t, psi):
@@ -76,10 +76,16 @@ def TwoDimTimeEvolvedAdvDiffFESolver(S, u, D, resolution):
         dpsidt[ID >= 0] = M_inv @ (F - K @ psi[ID >= 0])
         return dpsidt
     
-    t_max = 10000
-  #  dxs = [1250, 2500, 5000, 10000, 20000, 40000]
+    
+    if resolution == '1_25':
+        numeric_res = 1250
+    elif resolution == '2_5':
+        numeric_res = 2500
+    else:
+        numeric_res = int(resolution)*1000
+
     soln = integrate.solve_ivp(rhs, [0, t_max], Psi_A, method='RK45',
-                               max_step= 0.1*np.sqrt(10000)/np.linalg.norm(u)) #hardcoded 10k resolution for now
+                               max_step= 0.1*np.sqrt(numeric_res)/np.linalg.norm(u))
     
     #normalising
     Psi = np.zeros_like(soln.y)
@@ -87,26 +93,3 @@ def TwoDimTimeEvolvedAdvDiffFESolver(S, u, D, resolution):
         Psi[:,i] = 1/max(soln.y[:,i]) * soln.y[:,i]
     
     return nodes, IEN, southern_boarder, soln.t, Psi
-
-
-if __name__ == '__main__':    
-    
-    directed_at_reading = np.array([473993 - 442365, 171625 - 115483])
-    directed_at_reading = 1/np.linalg.norm(directed_at_reading)*directed_at_reading
-    
-    nodes, IEN, southern_boarder, ts, ys = TwoDimTimeEvolvedAdvDiffFESolver(S_sotonfire, 10*directed_at_reading, 10000, '10')
-
-    
-    for i, t in enumerate(ts):
-        if i % 100 == 0:
-            plt.figure()
-            plt.tripcolor(nodes[0,:], nodes[1,:], ys[:,i], triangles=IEN)
-            plt.plot([442365],[115483],'x',c='r')
-            plt.plot([473993], [171625],'x',c='pink')
-            plt.axis('equal')
-            plt.colorbar()
-            plt.title(f'Time = {int(t)}')
-            
-            plt.plot(nodes[0, southern_boarder], nodes[1,southern_boarder], '.', c='orange')
-        
-        plt.show()
