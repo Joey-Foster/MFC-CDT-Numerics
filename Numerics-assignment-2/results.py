@@ -83,3 +83,14 @@ print(f'Pollution over reading = {pollutionExtractor(psi, nodes, IEN, reading)}'
 convergence(max_res_data, reading, -10*directed_at_reading, 10000, figsize,
             'static_reading_convergence_Ns', 'static_reading_convergence_xs')
 
+
+from timeEvolvedPollutionOverReading import pollutionTimeSeries
+
+# Max runtime (secs)
+t_max = 15000
+
+pollutionTimeSeries(t_max, -10*north, D, '10', reading, 
+                    figsize=figsize, filename='timeseries_north')
+
+pollutionTimeSeries(t_max, -10*directed_at_reading, D, '10', reading, 
+                    figsize=figsize, filename='timeseries_reading')
