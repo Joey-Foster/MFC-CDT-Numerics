@@ -6,7 +6,7 @@ from staticPollutionOverReading import pollutionExtractor, S_sotonfire
 def doTimeEvolution(t_max, u, D, resolution):
     '''
     Plots one figure for each of the 201 timesteps - this may lag VScode, use spyder
-    until I port this into a GIF maker
+    because I don't have time to port this to a GIF renderer
     '''
     nodes, IEN, southern_boarder, ts, ys = TwoDimTimeEvolvedAdvDiffFESolver(S_sotonfire, 
                                                                             u, D, resolution, 
@@ -25,7 +25,7 @@ def doTimeEvolution(t_max, u, D, resolution):
     
     plt.show()
         
-def pollutionTimeSeries(t_max, u, D, resolution, coords):
+def pollutionTimeSeries(t_max, u, D, resolution, coords, figsize=None, filename=None):
     
     nodes, IEN, southern_boarder, ts, ys = TwoDimTimeEvolvedAdvDiffFESolver(S_sotonfire, 
                                                                             u, D, resolution, 
@@ -34,16 +34,19 @@ def pollutionTimeSeries(t_max, u, D, resolution, coords):
     psi_at_reading = np.zeros_like(ts)
     for i in range(len(ts)):
         psi_at_reading[i] = pollutionExtractor(ys[:,i], nodes, IEN, coords)
+    
+    if figsize != None:
+        plt.figure(figsize=figsize)    
+        plt.plot(ts, psi_at_reading)
+        plt.xlabel('t')
+        plt.ylabel(r'$\psi(Reading)$')
+        plt.title('Time series of pollution concerntration over Reading\n'
+                  f'u = [{abs(u[0]):.2f},{abs(u[1]):.2f}], D = {D}')
+        plt.grid()
+        if filename != None:
+            plt.savefig(f'{filename}.pdf')
+        plt.show()
         
-    plt.plot(ts, psi_at_reading)
-    plt.xlabel('t')
-    plt.ylabel(r'$\psi(Reading)$')
-    plt.title('Time series of pollution concerntration over Reading\n'
-              f'u = [{abs(u[0]):.2f},{abs(u[1]):.2f}], D = {D}')
-    plt.grid()
-    plt.show()
-    
-    
     return psi_at_reading
         
 def convergence(t_max, u, D, coords):
@@ -69,10 +72,5 @@ if __name__ == '__main__':
     directed_at_reading = np.array([473993 - 442365, 171625 - 115483])
     directed_at_reading = 1/np.linalg.norm(directed_at_reading)*directed_at_reading
     
-    doTimeEvolution(15000, -10*directed_at_reading, 1000, '10')
-   
-    reading = np.array([473993, 171625])
-   # print(convergence(15000, -10*directed_at_reading, 1000, reading))
-    
-    
-    #pollutionTimeSeries(15000, -10*directed_at_reading, 1000, '10', reading)
+    # This will produce 200 figures - use spyder's embeded plot viewer!
+    doTimeEvolution(15000, -10*directed_at_reading, 10000, '10')
