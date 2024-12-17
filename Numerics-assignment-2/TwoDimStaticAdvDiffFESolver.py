@@ -55,7 +55,7 @@ def localQuadrature(psi):
 
 def globalQuadrature(xe, phi):
     detJ = np.linalg.det(jacobian(xe))
-    integrand = lambda xi: detJ*phi(local2globalCoords(xe, xi))
+    integrand = lambda xi: abs(detJ)*phi(local2globalCoords(xe, xi))
     return localQuadrature(integrand)    
 
 def diffusion_stiffness(xe):
@@ -161,11 +161,3 @@ def TwoDimStaticAdvDiffFESolver(S, u, D, resolution):
     Psi_A = 1/max(Psi_A)*Psi_A
     
     return nodes, IEN, southern_boarder, Psi_A
-
-def S_sotonfire(x):
-    sigma = 1000
-    return np.exp(-1/(2*sigma**2)*((x[0]-442365)**2 + (x[1]-115483)**2))
-
-def S_identity(x):
-    return 1
-    

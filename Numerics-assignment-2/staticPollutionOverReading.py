@@ -1,6 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from TwoDimStaticAdvDiffFESolver import localShapeFunctions, global2localCoords, S_sotonfire, TwoDimStaticAdvDiffFESolver
+from TwoDimStaticAdvDiffFESolver import localShapeFunctions, global2localCoords, TwoDimStaticAdvDiffFESolver
+
+def S_sotonfire(x):
+    sigma = 10000
+    return np.exp(-1/(2*sigma**2)*((x[0]-442365)**2 + (x[1]-115483)**2))
 
 def elementValidityChecker(IEN, element):
     # np.sort() is necessary as the order of the nodes in 'element' need not be
@@ -68,16 +72,16 @@ def nearestElement2Coords(nodes, IEN, coords):
         return candidate_triangle
     
 def pollutionExtractor(psi, nodes, IEN, coords):
-    #find nodes of the triangle that contains reading
+    #find nodes of the triangle that contains 'coords'
     elementnodes = nearestElement2Coords(nodes, IEN, coords)
     #get the coords of the nodes of that triangle
     xe = nodes[:,elementnodes]
     
-    #find the local coords of reading in that triangle
+    #find the local coords of 'coords' in that triangle
     xi = global2localCoords(xe, coords)
     
     N = localShapeFunctions(xi)
-    #use basis function representation to determine the value of psi over reading
+    #use basis function representation to determine the value of psi at 'coords'
     pollution = np.dot(psi[elementnodes], N)
     return pollution
 
@@ -113,7 +117,7 @@ def convergence(coords, u, D):
     plt.ylabel('Error relative to max res soln')
     plt.legend()
     plt.grid()
-    plt.title(f'Relative Error in static case with u = [{u[0]:.2f}, {u[1]:.2f}], D = {D}')
+    plt.title(f'Relative Error in static case with u = [{abs(u[0]):.2f}, {abs(u[1]):.2f}], D = {D}')
     
     x = np.array([2500, 5000, 10000, 20000, 40000])
     polyfit_coeffs = np.polyfit(np.log(x[:-1]),np.log(error[:-1]),1) 
@@ -126,7 +130,7 @@ def convergence(coords, u, D):
     plt.ylabel('Error relative to max res soln')
     plt.legend()
     plt.grid()
-    plt.title(f'Relative Error in static case with u = [{u[0]:.2f}, {u[1]:.2f}], D = {D}')
+    plt.title(f'Relative Error in static case with u = [{abs(u[0]):.2f}, {abs(u[1]):.2f}], D = {D}')
     
     plt.show()
     
@@ -150,7 +154,7 @@ if __name__ == '__main__':
     directed_at_reading = 1/np.linalg.norm(directed_at_reading)*directed_at_reading
     
     nodes, IEN, southern_boarder, psi = TwoDimStaticAdvDiffFESolver(S_sotonfire, 
-                                                                    10*directed_at_reading, 10000, '5')
+                                                                    -10*directed_at_reading, 1000, '5')
     
     plt.tripcolor(nodes[0,:], nodes[1,:], psi, triangles=IEN)
     plt.plot([442365],[115483],'x',c='r')
@@ -166,6 +170,6 @@ if __name__ == '__main__':
     ans = pollutionExtractor(psi, nodes, IEN, reading)   
     print(ans)
     
-    order, error1, error2 = convergence(reading, 10*np.array([0,1]), 10000)
-    print(f'theoretical convergence order = {order}\n'f'theoretical absolute error = {error1}\n'
-          f'theoretical relative error = {error2}%')
+    # order, error1, error2 = convergence(reading, 10*np.array([0,1]), 10000)
+    # print(f'theoretical convergence order = {order}\n'f'theoretical absolute error = {error1}\n'
+    #       f'theoretical relative error = {error2}%')

@@ -67,10 +67,11 @@ def TwoDimTimeEvolvedAdvDiffFESolver(S, u, D, resolution, t_max):
     
     # Solve
     K = sp.csr_matrix(K)
-    M = sp.csr_matrix(M)
+    M = sp.csc_matrix(M)
     M_inv = sp.linalg.inv(M)
     
     Psi_A = np.zeros(N_nodes)
+   # Psi_A[ID>=0] = 
     def rhs(t, psi):
         dpsidt = np.zeros_like(psi)
         dpsidt[ID >= 0] = M_inv @ (F - K @ psi[ID >= 0])
@@ -85,11 +86,15 @@ def TwoDimTimeEvolvedAdvDiffFESolver(S, u, D, resolution, t_max):
         numeric_res = int(resolution)*1000
 
     soln = integrate.solve_ivp(rhs, [0, t_max], Psi_A, method='RK45',
-                               max_step= 0.1*np.sqrt(numeric_res)/np.linalg.norm(u))
+                               max_step= 0.5*np.sqrt(numeric_res)/np.linalg.norm(u)
+                               ,dense_output=True)
+    ts = np.linspace(0, t_max, 201)
+    ys = soln.sol(ts)
     
     #normalising
-    Psi = np.zeros_like(soln.y)
-    for i in range(1,len(soln.t)):
-        Psi[:,i] = 1/max(soln.y[:,i]) * soln.y[:,i]
+    Psi = np.zeros_like(ys)
+    for i in range(1,201):
+        Psi[:,i] = 1/max(ys[:,i]) * ys[:,i]
     
-    return nodes, IEN, southern_boarder, soln.t, Psi
+    return nodes, IEN, southern_boarder, ts, Psi
+    
