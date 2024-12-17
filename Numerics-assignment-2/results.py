@@ -89,6 +89,7 @@ from timeEvolvedPollutionOverReading import pollutionTimeSeries
 # Max runtime (secs)
 t_max = 15000
 
+# 10k res is the mas I can do without it taking ages
 pollutionTimeSeries(t_max, -10*north, D, '10', reading, 
                     figsize=figsize, filename='timeseries_north')
 
