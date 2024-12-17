@@ -44,22 +44,26 @@ def pollutionTimeSeries(t_max, u, D, resolution, coords):
     plt.show()
     
     
-    return ts, psi_at_reading
+    return psi_at_reading
         
 def convergence(t_max, u, D, coords):
     
-    ts, soln_N = pollutionTimeSeries(t_max, u, D, '20', coords)
-    _, soln_2N = pollutionTimeSeries(t_max, u, D, '10', coords)
-    __, soln_4N = pollutionTimeSeries(t_max, u, D, '5', coords)
-    
-   # indicies = np.arange(len(ts))
+    soln_N = pollutionTimeSeries(t_max, u, D, '20', coords)
+    soln_2N = pollutionTimeSeries(t_max, u, D, '10', coords)
+    soln_4N = pollutionTimeSeries(t_max, u, D, '5', coords)
     
     y_2N_N = np.linalg.norm(soln_2N - soln_N, 2)
     y_4N_2N = np.linalg.norm(soln_4N - soln_2N, 2)
     
     s = np.log2(y_2N_N/y_4N_2N)
-    return y_2N_N, y_4N_2N, s
     
+    abs_error = y_2N_N/(1-2**(-s))
+    rel_error = abs_error/soln_N * 100
+    
+    print(f'theoretical convergence order = {s}\n'
+          f'theoretical absolute error = {abs_error}\n'
+          f'theoretical relative error = {rel_error}%')
+
 if __name__ == '__main__':
     
     directed_at_reading = np.array([473993 - 442365, 171625 - 115483])
