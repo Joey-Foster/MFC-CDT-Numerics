@@ -85,44 +85,51 @@ def pollutionExtractor(psi, nodes, IEN, coords):
     pollution = np.dot(psi[elementnodes], N)
     return pollution
 
-def convergence(coords, u, D):
+def convergence(max_res_data, coords, u, D, figsize, filename1, filename2):
    
-    maxres_nodes, maxres_IEN, maxres_southern_boarder, maxres_psi = TwoDimStaticAdvDiffFESolver(S_sotonfire, u, D, '1_25')
+    maxres_nodes, maxres_IEN, maxres_southern_boarder, maxres_psi = max_res_data
+    
     maxres_pollution = pollutionExtractor(maxres_psi, maxres_nodes, maxres_IEN, coords)
-    y_4N = maxres_pollution
-    print('computed max res')
+    y_1_25k = maxres_pollution
    
     error = np.zeros(5)
     Ns = np.zeros(5)
     for i, res in enumerate(['2_5','5','10','20','40']):
         nodes, IEN, southern_boarder, psi = TwoDimStaticAdvDiffFESolver(S_sotonfire, u, D, res)
-        Ns[i] = len(nodes[0,:])**(1/2)
+        Ns[i] = len(nodes[0,:] - len(southern_boarder))**(1/2)
         pollution = pollutionExtractor(psi, nodes, IEN, coords)
-        if res == '5':
-            y_N = pollution
-        elif res == '2_5':
-            y_2N = pollution
+        if res == '2_5':
+            y_2_5k = pollution
+        elif res == '5':
+            y_5k = pollution
+        elif res == '10':
+            y_10k = pollution
+        elif res == '20':
+            y_20k = pollution
+        else:
+            y_40k = pollution
         error[i] = abs(pollution - maxres_pollution)
         print(f'computed error for {res}')
     
-    polyfit_coeffs = np.polyfit(np.log(Ns[:]),np.log(error[:]),1) 
+    polyfit_coeffs = np.polyfit(np.log(Ns),np.log(error),1) 
 
     trendline = lambda data,x: np.poly1d(data)(x)
     
-    plt.figure()
+    plt.figure(figsize=figsize)
     plt.loglog(Ns, error, 'xk')
     plt.loglog(Ns, np.exp(trendline(polyfit_coeffs,np.log(Ns))),'-r', 
                label=rf'$\propto N^{{{polyfit_coeffs[0]:.2f}}}$')
-    plt.xlabel('sqrt(Number of nodes)')
+    plt.xlabel(r'Degrees of freedom $\sim \sqrt{\mathrm{Number\ of\ nodes}}$')
     plt.ylabel('Error relative to max res soln')
     plt.legend()
     plt.grid()
     plt.title(f'Relative Error in static case with u = [{abs(u[0]):.2f}, {abs(u[1]):.2f}], D = {D}')
+    plt.savefig(f'{filename1}.pdf')
     
     x = np.array([2500, 5000, 10000, 20000, 40000])
-    polyfit_coeffs = np.polyfit(np.log(x[:-1]),np.log(error[:-1]),1) 
+    polyfit_coeffs = np.polyfit(np.log(x),np.log(error),1) 
     
-    plt.figure()
+    plt.figure(figsize=figsize)
     plt.loglog(x, error, 'xk')
     plt.loglog(x, np.exp(trendline(polyfit_coeffs,np.log(x))),'-r', 
                label=rf'$\propto x^{{{polyfit_coeffs[0]:.2f}}}$')
@@ -131,45 +138,41 @@ def convergence(coords, u, D):
     plt.legend()
     plt.grid()
     plt.title(f'Relative Error in static case with u = [{abs(u[0]):.2f}, {abs(u[1]):.2f}], D = {D}')
+    plt.savefig(f'{filename2}.pdf')
     
     plt.show()
     
     ###########################################################################
     
-    y2N_N = abs(y_2N - y_N)
-    y4N_2N = abs(y_4N - y_2N)
+    def theoretic_convergence(y_N, y_2N, y_4N):
     
-    s = np.log2(y2N_N/y4N_2N)
-    
-    abs_error = y2N_N/(1-2**(-s))
-    rel_error = abs_error/y_N * 100
+        y2N_N = abs(y_2N - y_N)
+        y4N_2N = abs(y_4N - y_2N)
+        
+        s = np.log2(y2N_N/y4N_2N)
+        
+        abs_error = y2N_N/(1-2**(-s))
+        rel_error = abs_error/y_N * 100
 
-    return s, abs_error, rel_error
+        return s, abs_error, rel_error
     
+    ss = np.zeros(4)
+    abs_errors = np.zeros(4)
+    rel_errors = np.zeros(4)
+    ys = np.array([[y_5k, y_2_5k, y_1_25k],
+                   [y_10k, y_5k, y_2_5k],
+                   [y_20k, y_10k, y_5k],
+                   [y_40k, y_20k, y_10k]])
     
-#%%
-if __name__ == '__main__':
+    for i, y in enumerate(ys):
+        ss[i], abs_errors[i], rel_errors[i] = theoretic_convergence(y[0], y[1], y[2])
+        
+    print('##########################################')
+    print(f'theoretical convergence order = {ss}\n'
+          f'theoretical absolute error = {abs_errors}\n'
+          f'theoretical relative error = {rel_errors}%\n'
+          f'mean order = {np.mean(ss)}\n'
+          f'mean abs error = {np.mean(abs_errors)}\n'
+          f'mean rel error = {np.mean(rel_errors)}')
+
     
-    directed_at_reading = np.array([473993 - 442365, 171625 - 115483])
-    directed_at_reading = 1/np.linalg.norm(directed_at_reading)*directed_at_reading
-    
-    nodes, IEN, southern_boarder, psi = TwoDimStaticAdvDiffFESolver(S_sotonfire, 
-                                                                    -10*directed_at_reading, 1000, '5')
-    
-    plt.tripcolor(nodes[0,:], nodes[1,:], psi, triangles=IEN)
-    plt.plot([442365],[115483],'x',c='r')
-    plt.plot([473993], [171625],'x',c='pink')
-    plt.axis('equal')
-    plt.colorbar()
-    
-    plt.plot(nodes[0, southern_boarder], nodes[1,southern_boarder], '.', c='orange')
-    
-    plt.show()
-    
-    reading = np.array([473993, 171625])
-    ans = pollutionExtractor(psi, nodes, IEN, reading)   
-    print(ans)
-    
-    # order, error1, error2 = convergence(reading, 10*np.array([0,1]), 10000)
-    # print(f'theoretical convergence order = {order}\n'f'theoretical absolute error = {error1}\n'
-    #       f'theoretical relative error = {error2}%')
