@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import sparse as sp
+import matplotlib.pyplot as plt
 
 '''
 Solving u .∇Ψ = S + D ΔΨ
@@ -67,20 +68,6 @@ def diffusion_stiffness(xe):
             output[i,j] = globalQuadrature(xe, phi)
     return output
     
-def advection_stiffness(xe, u):
-    output = np.zeros((3,3))
-    detJ = np.linalg.det(jacobian(xe))
-    dxNa = globalShapeFunctionDerivatives(xe)
-    for i in range(3):
-        for j in range(3):
-            integrand = lambda xi: abs(detJ) * localShapeFunctions(xi)[i] * (u[0]*dxNa[0,j]
-                                                                        + u[1]*dxNa[1,j])
-            output[i,j] = localQuadrature(integrand)
-    return output
-    
-def stiffness(xe, D, u):
-    return D * diffusion_stiffness(xe) - advection_stiffness(xe, u)
-
 def global2localCoords(xe, x):
     diffs = np.array([[xe[0,1]-xe[0,0], xe[0,2]-xe[0,0]],
                       [xe[1,1]-xe[1,0], xe[1,2]-xe[1,0]]])
@@ -89,6 +76,19 @@ def global2localCoords(xe, x):
 
 def globalShapeFunctions(xe, x):
     return localShapeFunctions(global2localCoords(xe, x))
+
+def advection_stiffness(xe, u):
+    output = np.zeros((3,3))
+    dxNa = globalShapeFunctionDerivatives(xe)
+    for i in range(3):
+        for j in range(3):
+            integrand = lambda x: globalShapeFunctions(xe, x)[i] * (u[0]*dxNa[0,j]
+                                                                    + u[1]*dxNa[1,j])
+            output[i,j] = globalQuadrature(xe,integrand)
+    return output
+
+def stiffness(xe, D, u):
+    return D * diffusion_stiffness(xe) - advection_stiffness(xe, u)
 
 def force(xe, S):
     output = np.zeros(3)
@@ -161,3 +161,34 @@ def TwoDimStaticAdvDiffFESolver(S, u, D, resolution):
     Psi_A = 1/max(Psi_A)*Psi_A
     
     return nodes, IEN, southern_boarder, Psi_A
+
+if __name__ == '__main__':
+    
+    def S_sotonfire(x):
+        sigma = 10000
+        return np.exp(-1/(2*sigma**2)*((x[0]-442365)**2 + (x[1]-115483)**2))
+
+    north = np.array([0,1])
+    
+    directed_at_reading = np.array([473993 - 442365, 171625 - 115483])
+    directed_at_reading = (1/np.linalg.norm(directed_at_reading)
+                           *directed_at_reading)
+    # Diffusion coefficient
+    D = 10000
+    
+    # Reading coords
+    reading = np.array([473993, 171625])
+    
+    # Max res north static plot
+ 
+    max_res_data = TwoDimStaticAdvDiffFESolver(S_sotonfire, -10*directed_at_reading, D, '5')
+    nodes, IEN, southern_boarder, psi = max_res_data
+    
+    plt.tripcolor(nodes[0,:], nodes[1,:], psi, triangles=IEN)
+    plt.plot([442365],[115483],'x',c='r')
+    plt.plot([473993], [171625],'x',c='pink')
+    plt.axis('equal')
+    plt.colorbar()
+    plt.plot(nodes[0, southern_boarder], nodes[1,southern_boarder], '.', c='orange')
+  
+    plt.show()
