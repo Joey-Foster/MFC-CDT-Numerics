@@ -269,6 +269,9 @@ def TwoDimStaticAdvDiffFESolver(S, u, D, resolution):
                                             southern border.
            - Psi_A (np.ndarray): Array of computed solution values at the nodes, 
                                  normalised.
+                                 
+    Note: the advection velocity must be entered as the negative of the desired
+    value due to an error with the IEN construction provided!
     """
     # Read in data
     nodes = np.loadtxt(f'las_grids/las_nodes_{resolution}k.txt')

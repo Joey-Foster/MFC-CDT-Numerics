@@ -4,6 +4,10 @@ from scipy import integrate
 from TwoDimStaticAdvDiffFESolver import (globalShapeFunctions, globalQuadrature, 
                                          stiffness, force)
 
+'''
+Solving ∂Ψ/∂t + u .∇Ψ = S + D ΔΨ
+'''
+
 def mass(xe):
     """
     Computes the mass matrix for a triangular element.
@@ -45,6 +49,14 @@ def TwoDimTimeEvolvedAdvDiffFESolver(S, u, D, resolution, t_max):
            - ts (np.ndarray): Array of timesteps at which the solution was evaluated.
            - Psi_A (np.ndarray): Array of computed solution values at the nodes, 
                                  normalised.
+                                 
+    Note: the advection velocity must be entered as the negative of the desired
+    value due to an error with the IEN construction provided!
+    
+    Note also: there is a reasonable amount of code duplicate between this and 
+    the static solver. Ideally there would be an assembly() function that removes
+    most of the copying but I didn't have time to find a way to have it deal with
+    the optional-ness of mass(). There is definitely a way to do it, but oh well...
     """
     # Read in data
     nodes = np.loadtxt(f'las_grids/las_nodes_{resolution}k.txt')
