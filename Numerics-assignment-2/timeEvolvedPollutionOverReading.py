@@ -66,7 +66,7 @@ def pollutionTimeSeries(t_max, u, D, resolution, coords, figsize=None, filename=
     if figsize != None:
         plt.figure(figsize=figsize)    
         plt.plot(ts, psi_at_reading)
-        plt.xlabel('t')
+        plt.xlabel('t [secs]')
         plt.ylabel(r'$\psi(Reading)$')
         plt.title('Time series of pollution concerntration over Reading\n'
                   f'u = [{abs(u[0]):.2f},{abs(u[1]):.2f}], D = {D}')
