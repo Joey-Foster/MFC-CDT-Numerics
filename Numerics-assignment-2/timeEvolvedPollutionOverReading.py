@@ -106,7 +106,7 @@ def convergence(t_max, u, D, coords):
     s = np.log2(y_2N_N/y_4N_2N)
     
     abs_error = y_2N_N/(1-2**(-s))
-    rel_error = abs_error/soln_N * 100
+    rel_error = abs_error/np.linalg.norm(soln_N,2) * 100
     
     textual_data = (f'theoretical convergence order = {s}\n'
                     f'theoretical absolute error = {abs_error}\n'
