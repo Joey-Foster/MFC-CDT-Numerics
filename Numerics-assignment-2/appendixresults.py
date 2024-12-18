@@ -16,7 +16,5 @@ reading = np.array([473993, 171625])
 # Max runtime (secs)
 t_max = 15000
 
-print('North wind:')
 convergence(t_max, -10*north, D, reading)
-print('Reading wind:')
 convergence(t_max, -10*directed_at_reading, D, reading)
