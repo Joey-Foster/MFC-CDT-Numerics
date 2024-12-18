@@ -62,7 +62,7 @@ print(f'Pollution over reading = {pollutionExtractor(psi, nodes, IEN, reading)}'
 convergence(max_res_data, reading, -10*north, 10000, figsize, 
             'static_north_convergence_Ns', 'static_north_convergence_xs')
 
-print('\n')
+print('')
 # Max res reading-directed static plot
 plt.figure(figsize=figsize)
 max_res_data = TwoDimStaticAdvDiffFESolver(S_sotonfire, -10*directed_at_reading,

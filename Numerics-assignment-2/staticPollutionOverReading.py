@@ -167,12 +167,15 @@ def convergence(max_res_data, coords, u, D, figsize, filename1, filename2):
     for i, y in enumerate(ys):
         ss[i], abs_errors[i], rel_errors[i] = theoretic_convergence(y[0], y[1], y[2])
         
-    print('##########################################')
-    print(f'theoretical convergence order = {ss}\n'
-          f'theoretical absolute error = {abs_errors}\n'
-          f'theoretical relative error = {rel_errors}%\n'
-          f'mean order = {np.mean(ss)}\n'
-          f'mean abs error = {np.mean(abs_errors)}\n'
-          f'mean rel error = {np.mean(rel_errors)}')
+    textual_data = (f'theoretical convergence order = {ss}\n'
+                    f'theoretical absolute error = {abs_errors}\n'
+                    f'theoretical relative error = {rel_errors}%\n'
+                    f'mean order = {np.mean(ss)}\n'
+                    f'mean abs error = {np.mean(abs_errors)}\n'
+                    f'mean rel error = {np.mean(rel_errors)}')
+        
+    with open(f'static_convergence_results_for_u=[{abs(u[0]):.2f}, {abs(u[1]):.2f}].txt',
+              'w') as file:
+        file.write(textual_data)
 
     
