@@ -2,7 +2,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def meshPlotter(filename, nodes, IEN, boundary_nodes, psi=None):
-    
+    """
+    Plots the finite element mesh and optionally the solution values.
+
+    Parameters:
+    filename (str): The name of the file to save the plot as a PDF.
+    nodes (np.ndarray): A 2xN array containing the coordinates of the nodes, 
+                        where N is the 'long' axis of nodes, i.e. N>>2.
+    IEN (np.ndarray): Element connectivity array where each row represents a 
+                      triangular element and contains the indices of its nodes.
+    boundary_nodes (np.ndarray): Array containing the indices of the boundary nodes.
+    psi (np.ndarray, optional): Array of solution values at the nodes. Default is None.
+
+    Returns:
+    figsize (tuple): The figure size used for the plot.
+    """
     #Make the plot text and aspect ratio look nice
     params = {'text.usetex' : True,
               'font.size' : 11,

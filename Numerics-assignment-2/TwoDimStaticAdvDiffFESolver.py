@@ -7,26 +7,47 @@ Solving u .∇Ψ = S + D ΔΨ
 '''
 
 def localShapeFunctions(xi):
+    """
+    Computes the local shape functions for a triangular element.
+
+    Parameters:
+    xi (array-like): Local coordinates (xi1, xi2) within the triangular element.
+
+    Returns:
+    np.ndarray: Array of shape functions evaluated at the given local coordinates.
+    """
     return np.array([1-xi[0]-xi[1], xi[0], xi[1]])
 
 def localShapeFunctionDerivatives():
-    '''
-    d_xi1 : N_0, N_1, N_2
-    d_xi2 : N_0, N_1, N_2
+    """
+    Computes the derivatives of the local shape functions with respect to the 
+    local coordinates.
 
-    '''
+    Returns:
+    matrix (mp.ndarray): A 2x3 matrix where each row contains the derivatives of the 
+                    shape functions with respect to xi1 and xi2, respectively.
+                    - The first row contains the derivatives with respect to xi1.
+                    - The second row contains the derivatives with respect to xi2.
+    """
     matrix = np.zeros((2,3))
     matrix[0,:] = np.array([-1,1,0])
     matrix[1,:] = np.array([-1,0,1])
     return matrix
 
 def local2globalCoords(xe,xi):
-    '''
-    xe is a 2x3 matrix containing the global coords of the element nodes
-    xi are the local coords
-    
-    returns x, the global coords
-    '''
+    """
+    Transforms local coordinates to global coordinates for a triangular element.
+
+    Parameters:
+    xe (np.ndarray): A 2x3 matrix containing the global coordinates of the 
+                     element nodes. Each column represents a node, and each row 
+                     represents a coordinate (x or y).
+    xi (array-like): Local coordinates (xi1, xi2) within the triangular element.
+
+    Returns:
+    globalcoords (np.ndarray): The global coordinates corresponding to the given
+                               local coordinates.
+    """
     globalcoords = np.zeros(2)
     N = localShapeFunctions(xi)
     for i in range(2):
@@ -34,6 +55,19 @@ def local2globalCoords(xe,xi):
     return globalcoords
 
 def jacobian(xe):
+    """
+    Computes the Jacobian matrix for the transformation from local to global 
+    coordinates for a triangular element.
+
+    Parameters:
+    xe (np.ndarray): A 2x3 matrix containing the global coordinates of the 
+                     element nodes. Each column represents a node, and each row
+                     represents a coordinate (x or y).
+                     
+    Returns:
+    output (np.ndarray): A 2x2 Jacobian matrix containing the partial derivatives
+                         of the global coordinates with respect to local coordinates.
+    """
     Nprime = localShapeFunctionDerivatives()
     output = np.zeros((2,2))
     for i in range(2):
@@ -42,9 +76,35 @@ def jacobian(xe):
     return output
 
 def globalShapeFunctionDerivatives(xe):
+    """
+    Computes the derivatives of the shape functions with respect to global coordinates
+    for a triangular element.
+
+    Parameters:
+    xe (np.ndarray): A 2x3 matrix containing the global coordinates of the 
+                     element nodes. Each column represents a node, and each row
+                     represents a coordinate (x or y).
+
+    Returns:
+    np.ndarray: A 2x3 matrix where each column contains the derivatives of the 
+                shape functions with respect to global coordinates (x and y).
+                - The first row contains the derivatives with respect to x.
+                - The second row contains the derivatives with respect to y.
+    """
     return np.linalg.inv(jacobian(xe)).T @ localShapeFunctionDerivatives()
 
 def localQuadrature(psi):
+    """
+    Performs numerical integration using Gauss quadrature over a triangular 
+    element in local coordinates.
+
+    Parameters:
+    psi (function): A function to be integrated, which takes local coordinates
+                    as input and returns a scalar value.
+
+    Returns:
+    quadrature (float): The result of the numerical integration.
+    """
     quadrature = 0
     
     #Gauss-quadrature evaluation points (2nd order accurate approximation)
@@ -55,11 +115,36 @@ def localQuadrature(psi):
     return quadrature
 
 def globalQuadrature(xe, phi):
+    """
+    Performs numerical integration using Gauss quadrature over a triangular 
+    element in global coordinates.
+
+    Parameters:
+    xe (np.ndarray): A 2x3 matrix containing the global coordinates of the 
+                     element nodes. Each column represents a node, and each row
+                     represents a coordinate (x or y).
+    phi (function): A function to be integrated, which takes global coordinates
+                    as input and returns a scalar value.
+
+    Returns:
+    float: The result of the numerical integration.
+    """
     detJ = np.linalg.det(jacobian(xe))
     integrand = lambda xi: abs(detJ)*phi(local2globalCoords(xe, xi))
     return localQuadrature(integrand)    
 
 def diffusion_stiffness(xe):
+    """
+    Computes the diffusion stiffness matrix for a triangular element.
+
+    Parameters:
+    xe (np.ndarray): A 2x3 matrix containing the global coordinates of the 
+                     element nodes. Each column represents a node, and each row
+                     represents a coordinate (x or y).
+
+    Returns:
+    output (np.ndarray): A 3x3 diffusion stiffness matrix for the triangular element.
+    """
     output = np.zeros((3,3))
     dxNa = globalShapeFunctionDerivatives(xe)
     for i in range(3):
@@ -69,15 +154,55 @@ def diffusion_stiffness(xe):
     return output
     
 def global2localCoords(xe, x):
+    """
+    Transforms global coordinates to local coordinates for a triangular element.
+
+    Parameters:
+    xe (np.ndarray): A 2x3 matrix containing the global coordinates of the 
+                     element nodes. Each column represents a node, and each row
+                     represents a coordinate (x or y).
+    x (array-like): Global coordinates to be transformed.
+
+    Returns:
+    localcoords (np.ndarray): The local coordinates corresponding to the given 
+                              global coordinates.
+    """
+    # Inverts the equation x = x0^e (1 - xi1 - xi2) + x1^e xi1 + x2^e xi2
+    #                      y = y0^e (1 - xi1 - xi2) + y1^e xi1 + y2^e xi2
+    # to solve for xi1, xi2.
     diffs = np.array([[xe[0,1]-xe[0,0], xe[0,2]-xe[0,0]],
                       [xe[1,1]-xe[1,0], xe[1,2]-xe[1,0]]])
     localcoords = np.linalg.solve(diffs, x-np.array([xe[0,0],xe[1,0]]))
     return localcoords
 
 def globalShapeFunctions(xe, x):
+    """
+    Computes the shape functions at given global coordinates for a triangular element.
+
+    Parameters:
+    xe (np.ndarray): A 2x3 matrix containing the global coordinates of the 
+                     element nodes. Each column represents a node, and each row
+                     represents a coordinate (x or y).
+    x (array-like): Global coordinates where the shape functions are to be evaluated.
+
+    Returns:
+    np.ndarray: Array of shape functions evaluated at the given global coordinates.
+    """
     return localShapeFunctions(global2localCoords(xe, x))
 
 def advection_stiffness(xe, u):
+    """
+    Computes the advection stiffness matrix for a triangular element.
+
+    Parameters:
+    xe (np.ndarray): A 2x3 matrix containing the global coordinates of the 
+                     element nodes. Each column represents a node, and each row
+                     represents a coordinate (x or y).
+    u (array-like): Advection velocity vector.
+
+    Returns:
+    output (np.ndarray): A 3x3 advection stiffness matrix for the triangular element.
+    """
     output = np.zeros((3,3))
     dxNa = globalShapeFunctionDerivatives(xe)
     for i in range(3):
@@ -88,9 +213,36 @@ def advection_stiffness(xe, u):
     return output
 
 def stiffness(xe, D, u):
+    """
+    Computes the combined stiffness matrix for a triangular element, combining both
+    diffusion and advection effects.
+
+    Parameters:
+    xe (np.ndarray): A 2x3 matrix containing the global coordinates of the 
+                     element nodes. Each column represents a node, and each row
+                     represents a coordinate (x or y).
+    u (array-like): Advection velocity vector.
+    D (float): Diffusion coefficient.
+
+    Returns:
+    np.ndarray: A 3x3 combined stiffness matrix for the triangular element.
+    """
     return D * diffusion_stiffness(xe) - advection_stiffness(xe, u)
 
 def force(xe, S):
+    """
+    Computes the force vector for a triangular element.
+
+    Parameters:
+    xe (np.ndarray): A 2x3 matrix containing the global coordinates of the 
+                     element nodes. Each column represents a node, and each row
+                     represents a coordinate (x or y).
+    S (function): A source term function that takes global coordinates as input
+                  and returns a scalar value.
+
+    Returns:
+    output (np.ndarray): A 3-element force vector for the triangular element.
+    """
     output = np.zeros(3)
     for i in range(3):
         integrand = lambda x: S(x) * globalShapeFunctions(xe, x)[i]
@@ -98,18 +250,35 @@ def force(xe, S):
     return output
         
 def TwoDimStaticAdvDiffFESolver(S, u, D, resolution):
-    '''
-    S (funciton): source term
-    u (array): wind velocity [ms^-1]
-    D (float): diffusion coefficient [m^2s^-1]
-    resolution (string): one of [1_25, 2_5, 5, 10, 20, 40]
-    '''
+    """
+    Solves the 2D steady-state advection-diffusion equation using the finite 
+    element method.
+
+    Parameters:
+    S (function): Source term function that takes global coordinates as input 
+                  and returns a scalar value.
+    u (array-like): Advection velocity vector [ms^-1].
+    D (float): Diffusion coefficient [m^2s^-1].
+    resolution (string): Grid resolution, one of ['1_25', '2_5', '5', '10', '20', '40'].
+
+    Returns:
+    tuple: A tuple containing the following elements:
+           - nodes (np.ndarray): Array of node coordinates.
+           - IEN (np.ndarray): Array of element connectivity.
+           - southern_boarder (np.ndarray): Array of indices of nodes on the 
+                                            southern border.
+           - Psi_A (np.ndarray): Array of computed solution values at the nodes, 
+                                 normalised.
+    """
+    # Read in data
     nodes = np.loadtxt(f'las_grids/las_nodes_{resolution}k.txt')
     IEN = np.loadtxt(f'las_grids/las_IEN_{resolution}k.txt', dtype=np.int64)
     boundary_nodes = np.loadtxt(f'las_grids/las_bdry_{resolution}k.txt', dtype=np.int64)
 
+    # locate southern boarder for Dirichlet BC
     southern_boarder = np.where(nodes[boundary_nodes,1] <= 110000)[0]
      
+    # Set all nodes in 'southern_boarder' to be ignored by the solver
     ID = np.zeros(len(nodes), dtype=np.int64)
     n_eq = 0
     for i in range(len(nodes[:, 1])):
@@ -131,17 +300,19 @@ def TwoDimStaticAdvDiffFESolver(S, u, D, resolution):
         for a in range(3):
             LM[a,e] = ID[IEN[e,a]]
             
-    # Global stiffness matrix and force vector
+    # Global stiffness matrix and force vector. Calling sparse for memory efficiency
     K = sp.lil_matrix((N_equations, N_equations))
     F = np.zeros((N_equations,))
     # Loop over elements
     for e in range(N_elements):
+        # compute the individual contriubtions from each element
         k_e = stiffness(nodes[:,IEN[e,:]], D, u)
         f_e = force(nodes[:,IEN[e,:]], S)
         for a in range(3):
             A = LM[a, e]
             for b in range(3):
                 B = LM[b, e]
+            # if not on a BC node, assemble full stiffness and force arrays
                 if (A >= 0) and (B >= 0):
                     K[A, B] += k_e[a, b]
             if (A >= 0):
@@ -153,42 +324,10 @@ def TwoDimStaticAdvDiffFESolver(S, u, D, resolution):
     Psi_interior = sp.linalg.spsolve(K, F)
     Psi_A = np.zeros(N_nodes)
     for n in range(N_nodes):
-        if ID[n] >= 0: # Otherwise, Psi_A is homogeneous dirichlet
+        if ID[n] >= 0: # Otherwise, Psi_A is homogeneous Dirichlet
             Psi_A[n] = Psi_interior[ID[n]]
             
-    
-    #normalising
+    # normalising
     Psi_A = 1/max(Psi_A)*Psi_A
     
     return nodes, IEN, southern_boarder, Psi_A
-
-if __name__ == '__main__':
-    
-    def S_sotonfire(x):
-        sigma = 10000
-        return np.exp(-1/(2*sigma**2)*((x[0]-442365)**2 + (x[1]-115483)**2))
-
-    north = np.array([0,1])
-    
-    directed_at_reading = np.array([473993 - 442365, 171625 - 115483])
-    directed_at_reading = (1/np.linalg.norm(directed_at_reading)
-                           *directed_at_reading)
-    # Diffusion coefficient
-    D = 10000
-    
-    # Reading coords
-    reading = np.array([473993, 171625])
-    
-    # Max res north static plot
- 
-    max_res_data = TwoDimStaticAdvDiffFESolver(S_sotonfire, -10*directed_at_reading, D, '5')
-    nodes, IEN, southern_boarder, psi = max_res_data
-    
-    plt.tripcolor(nodes[0,:], nodes[1,:], psi, triangles=IEN)
-    plt.plot([442365],[115483],'x',c='r')
-    plt.plot([473993], [171625],'x',c='pink')
-    plt.axis('equal')
-    plt.colorbar()
-    plt.plot(nodes[0, southern_boarder], nodes[1,southern_boarder], '.', c='orange')
-  
-    plt.show()
