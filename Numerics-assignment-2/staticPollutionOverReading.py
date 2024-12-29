@@ -188,7 +188,7 @@ def convergence(max_res_data, coords, u, D, figsize, filename1, filename2):
     # necessity.
     maxres_nodes, maxres_IEN, maxres_southern_boarder, maxres_psi = max_res_data
     
-    # extract poulltant at 'cpprds' and save value for later
+    # extract poulltant at 'coords' and save value for later
     maxres_pollution = pollutionExtractor(maxres_psi, maxres_nodes, maxres_IEN, coords)
     y_1_25k = maxres_pollution
    

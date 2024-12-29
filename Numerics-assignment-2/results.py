@@ -42,7 +42,7 @@ def meshPlotter(filename, nodes, IEN, boundary_nodes, psi=None):
     plt.savefig(f'{filename}.pdf')
     plt.show()
     
-    # figsize is return purely so it can be accessed by other plotting functions
+    # figsize is returned purely so it can be accessed by other plotting functions
     return figsize
 
 # Load in example mesh figure
